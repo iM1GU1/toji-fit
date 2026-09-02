@@ -115,7 +115,7 @@ const ViewEntrenar = (() => {
           <div class="card">
             <div class="row between"><strong>${h.nombre}</strong><span class="muted mono" style="font-size:0.8rem;">${new Date(h.finishedAt).toLocaleDateString("es-ES")}</span></div>
             <p class="muted" style="margin:6px 0 0;font-size:0.85rem;">${h.entries.length} ejercicios · ${h.entries.reduce((a, e) => a + e.sets.filter(s => s.done).length, 0)} series completadas</p>
-          </div>`).join("") : `<div class="empty">Todavía no has terminado ningún entrenamiento.</div>`}
+          </div>`).join("") : `<div class="empty"><img class="toji-art" src="icons/hero-silhouette.svg" alt="">Todavía no has terminado ningún entrenamiento.</div>`}
       </div>
     `;
     el.querySelectorAll("#picker-days button").forEach(b => {

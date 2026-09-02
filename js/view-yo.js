@@ -1,84 +1,97 @@
-/* view-yo.js — progreso: peso, hábitos semanales y consejos del motor de reglas */
+/* view-yo.js — racha, semana en ticks, peso y consejos. Minimalista, poco texto. */
 
 const ViewYo = (() => {
-  const DAY_KEYS = [["lun","L"],["mar","M"],["mie","X"],["jue","J"],["vie","V"],["sab","S"],["dom","D"]];
-  const HABITS = [["pesarse","Pesarme esta semana"],["compra","Hacer la compra"],["mealprep","Meal prep / cocinar por lotes"]];
+  const DOW_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 
   function root() { return document.getElementById("view-yo"); }
+  function fmt(d) { return d.toISOString().slice(0, 10); }
+
+  function weekDates() {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const dow = (today.getDay() + 6) % 7; // 0 = lunes
+    const monday = new Date(today); monday.setDate(monday.getDate() - dow);
+    return Array.from({ length: 7 }, (_, i) => { const d = new Date(monday); d.setDate(d.getDate() + i); return d; });
+  }
 
   function render() {
     const el = root();
+    const dayLog = Store.getDayLog();
+    const streak = Engine.computeStreak(dayLog);
+    const week = weekDates();
+    const todayStr = fmt(new Date());
     const tips = Engine.homeTips(Store);
     const weightLog = Store.getWeightLog();
-    const todo = Store.getTodoWeek();
-    const history = Store.getHistory();
 
     el.innerHTML = `
-      <h2 style="margin-bottom:14px;">Tu progreso</h2>
+      <div class="streak-hero">
+        <img class="flame-big" src="icons/flame.svg" alt="">
+        <div class="num">${streak.current}</div>
+        <div class="lbl">${streak.current === 1 ? "día seguido" : "días seguidos"}${streak.best > streak.current ? ` · récord ${streak.best}` : ""}</div>
+      </div>
+
+      <div class="week-ticks">
+        ${week.map((d, i) => {
+          const ds = fmt(d);
+          const done = !!dayLog[ds];
+          const isToday = ds === todayStr;
+          return `<div class="d">
+            <div class="lbl">${DOW_LABELS[i]}</div>
+            <button class="tick ${done ? "done" : ""} ${isToday ? "today" : ""}" data-date="${ds}">${done ? "✓" : ""}</button>
+          </div>`;
+        }).join("")}
+      </div>
+
+      <button class="btn primary block" id="btn-mark-today" style="margin-bottom:18px;">
+        ${dayLog[todayStr] ? "Hoy: cumplido ✓" : "Marcar hoy como cumplido"}
+      </button>
 
       ${tips.map(t => `<div class="callout ${t.tipo === "bien" ? "" : "accent"}">${t.texto}</div>`).join("")}
 
       <div class="card">
-        <h3 style="margin-bottom:10px;">Peso corporal</h3>
-        <div class="weight-log">
+        <div class="row between" style="margin-bottom:2px;">
+          <h3>Peso</h3>
+          ${weightLog.length ? `<span class="mono" style="color:var(--accent-2);">${weightLog[weightLog.length - 1].kg} kg</span>` : ""}
+        </div>
+        <div class="weight-log" style="margin-top:10px;">
           <input type="number" step="0.1" id="weight-input" placeholder="kg de hoy">
-          <button class="btn primary small" id="btn-add-weight">Registrar</button>
+          <button class="btn primary small" id="btn-add-weight">+</button>
         </div>
-        ${weightLog.length ? renderWeightChart(weightLog) : `<p class="muted" style="font-size:0.85rem;">Sin registros todavía. Pésate en ayunas, una vez por semana.</p>`}
-      </div>
-
-      <div class="card">
-        <h3 style="margin-bottom:10px;">Esta semana</h3>
-        <div class="todo-grid">
-          ${DAY_KEYS.map(([k, l]) => `
-            <div class="d">
-              <div class="lbl">${l}</div>
-              <button data-day="${k}" class="${todo.days[k] ? "done" : ""}">${todo.days[k] ? "✓" : ""}</button>
-            </div>`).join("")}
-        </div>
-        <p class="muted" style="font-size:0.78rem;margin-bottom:10px;">Marca los días que entrenas.</p>
-        <div class="stack">
-          ${HABITS.map(([k, l]) => `
-            <label class="row" style="gap:10px;">
-              <input type="checkbox" data-habit="${k}" ${todo.habits[k] ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--accent);">
-              <span>${l}</span>
-            </label>`).join("")}
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 style="margin-bottom:10px;">Historial de entrenamientos</h3>
-        ${history.length ? `<p class="muted" style="font-size:0.85rem;">${history.length} entrenamientos registrados en total.</p>` : `<p class="muted" style="font-size:0.85rem;">Todavía ninguno — empieza en la pestaña Entrenar.</p>`}
+        ${weightLog.length ? renderWeightChart(weightLog) : `<p class="muted" style="font-size:0.82rem;">Pésate en ayunas, una vez por semana.</p>`}
       </div>
     `;
 
+    el.querySelectorAll(".week-ticks button").forEach(b => {
+      b.addEventListener("click", () => {
+        if (b.dataset.date !== todayStr) return; // solo se puede marcar/desmarcar el día de hoy
+        Store.toggleDayDone(b.dataset.date);
+        App.updateStreakPill();
+        render();
+      });
+    });
+    el.querySelector("#btn-mark-today").addEventListener("click", () => {
+      Store.toggleDayDone(todayStr);
+      App.updateStreakPill();
+      render();
+    });
     el.querySelector("#btn-add-weight").addEventListener("click", () => {
       const v = el.querySelector("#weight-input").value;
       if (v && Number(v) > 0) { Store.addWeight(v); App.toast("Peso registrado"); render(); }
     });
-    el.querySelectorAll("[data-day]").forEach(b => b.addEventListener("click", () => { Store.toggleTodoDay(b.dataset.day); render(); }));
-    el.querySelectorAll("[data-habit]").forEach(c => c.addEventListener("change", () => { Store.toggleTodoHabit(c.dataset.habit); render(); }));
   }
 
   function renderWeightChart(log) {
     const last = log.slice(-10);
     const vals = last.map(w => w.kg);
     const min = Math.min(...vals) - 0.5, max = Math.max(...vals) + 0.5;
-    const w = 280, h = 70, pad = 6;
+    const w = 280, h = 60, pad = 6;
     const pts = last.map((p, i) => {
       const x = pad + (i / Math.max(1, last.length - 1)) * (w - pad * 2);
       const y = h - pad - ((p.kg - min) / (max - min || 1)) * (h - pad * 2);
       return `${x.toFixed(1)},${y.toFixed(1)}`;
     }).join(" ");
-    const current = last[last.length - 1].kg;
-    const first = last[0].kg;
-    const diff = Math.round((current - first) * 10) / 10;
-    return `
-      <svg viewBox="0 0 ${w} ${h}" style="width:100%;height:70px;display:block;margin:8px 0 4px;">
-        <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
-      </svg>
-      <p class="muted" style="font-size:0.8rem;">Último: <strong style="color:var(--text);">${current} kg</strong> · ${diff <= 0 ? diff : "+" + diff} kg desde el ${new Date(last[0].date).toLocaleDateString("es-ES")}</p>
-    `;
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:60px;display:block;margin-top:6px;">
+      <polyline points="${pts}" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>`;
   }
 
   return { render };

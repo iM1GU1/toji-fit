@@ -1,7 +1,8 @@
-/* main.js — arranque de la app, navegación entre pestañas y panel de ajustes */
+/* main.js — arranque de la app, navegación entre pestañas, racha y panel de ajustes */
 
 const App = (() => {
   let currentView = "rutina";
+  let navReady = false;
   const VIEWS = {
     rutina: ViewRutina, entrenar: ViewEntrenar, comer: ViewComer, guias: ViewGuias, yo: ViewYo
   };
@@ -14,6 +15,12 @@ const App = (() => {
     toast._h = setTimeout(() => t.classList.remove("show"), 2200);
   }
 
+  function updateStreakPill() {
+    if (!Store.state) return;
+    const s = Engine.computeStreak(Store.getDayLog());
+    document.getElementById("streak-n").textContent = s.current;
+  }
+
   function goTo(viewName, params) {
     currentView = viewName;
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
@@ -21,16 +28,16 @@ const App = (() => {
     document.querySelectorAll("nav.bottom button").forEach(b => b.classList.toggle("active", b.dataset.view === viewName));
     if (viewName === "guias" && params && params.exerciseId) ViewGuias.openExercise(params.exerciseId);
     else VIEWS[viewName].render();
+    updateStreakPill();
     document.getElementById("main").scrollTo({ top: 0 });
   }
 
   function initNav() {
+    if (navReady) return;
+    navReady = true;
     document.querySelectorAll("nav.bottom button").forEach(b => {
       b.addEventListener("click", () => goTo(b.dataset.view));
     });
-  }
-
-  function initSettings() {
     document.getElementById("btn-settings").addEventListener("click", openSettings);
   }
 
@@ -42,6 +49,7 @@ const App = (() => {
     panel.innerHTML = `
       <div class="sheet">
         <h2>Ajustes</h2>
+        <p class="muted" style="font-size:0.82rem;margin-bottom:16px;">Sesión: ${Auth.user ? Auth.user.email : ""}</p>
         <div class="field"><label>Edad</label><input type="number" id="s-edad" value="${profile.edad}"></div>
         <div class="field"><label>Altura (cm)</label><input type="number" id="s-altura" value="${profile.altura_cm}"></div>
         <div class="field"><label>Peso actual (kg)</label><input type="number" step="0.1" id="s-peso" value="${profile.peso_kg}"></div>
@@ -57,8 +65,7 @@ const App = (() => {
         <button class="btn primary block" id="s-save">Guardar</button>
         <button class="btn ghost block" id="s-close" style="margin-top:8px;">Cerrar</button>
         <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;">
-        <p class="muted" style="font-size:0.8rem;margin-bottom:10px;">Recuerda: el candado de la web es solo un disuasorio, el código de esta app es público en GitHub.</p>
-        <button class="btn ghost block" id="s-reset-pw">Cambiar contraseña de acceso</button>
+        <button class="btn ghost block" id="s-logout">Cerrar sesión</button>
       </div>
     `;
     document.body.appendChild(panel);
@@ -79,25 +86,30 @@ const App = (() => {
       toast("Ajustes guardados");
       VIEWS[currentView].render();
     });
-    panel.querySelector("#s-reset-pw").addEventListener("click", () => {
-      if (confirm("Vas a tener que crear una contraseña nueva la próxima vez que abras la web. ¿Continuar?")) Gate.resetPassword();
+    panel.querySelector("#s-logout").addEventListener("click", () => {
+      Store.clearRemote();
+      Auth.logout();
+      panel.remove();
     });
   }
 
-  async function boot() {
-    await Store.loadData();
+  async function onAuthed(user) {
+    await Store.initRemote(user.uid);
     initNav();
-    initSettings();
     document.getElementById("app").classList.add("ready");
     goTo("rutina");
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("sw.js").catch(() => {});
-    }
+    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
   }
 
-  document.addEventListener("DOMContentLoaded", () => {
-    Gate.init(boot);
+  function onSignedOut() {
+    document.getElementById("app").classList.remove("ready");
+    currentView = "rutina";
+  }
+
+  document.addEventListener("DOMContentLoaded", async () => {
+    await Store.loadData();
+    Auth.init(onAuthed, onSignedOut);
   });
 
-  return { goTo, toast };
+  return { goTo, toast, updateStreakPill };
 })();

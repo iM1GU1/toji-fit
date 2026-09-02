@@ -35,6 +35,37 @@ const Engine = (() => {
     }));
   }
 
+  // Racha: días consecutivos marcados como cumplidos, terminando hoy o ayer
+  // (si hoy aún no se ha marcado, no rompe la racha hasta que acabe el día).
+  function computeStreak(dayLog) {
+    const toDate = s => new Date(s + "T00:00:00");
+    const fmt = d => d.toISOString().slice(0, 10);
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const todayStr = fmt(today);
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);
+
+    let current = 0;
+    let cursor = dayLog[todayStr] ? today : yesterday;
+    while (dayLog[fmt(cursor)]) {
+      current++;
+      cursor.setDate(cursor.getDate() - 1);
+    }
+
+    const dates = Object.keys(dayLog).filter(d => dayLog[d]).sort();
+    let best = 0, run = 0, prev = null;
+    dates.forEach(d => {
+      if (prev) {
+        const diff = (toDate(d) - toDate(prev)) / 86400000;
+        run = diff === 1 ? run + 1 : 1;
+      } else run = 1;
+      best = Math.max(best, run);
+      prev = d;
+    });
+    best = Math.max(best, current);
+
+    return { current, best, doneToday: !!dayLog[todayStr] };
+  }
+
   function bmi(profile) {
     const h = profile.altura_cm / 100;
     return Math.round((profile.peso_kg / (h * h)) * 10) / 10;
@@ -86,5 +117,5 @@ const Engine = (() => {
     return tips;
   }
 
-  return { bmr, tdee, calcTargets, mealTargets, bmi, weightTrendAdvice, homeTips };
+  return { bmr, tdee, calcTargets, mealTargets, bmi, weightTrendAdvice, homeTips, computeStreak };
 })();

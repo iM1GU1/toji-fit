@@ -2,20 +2,36 @@
 
 App web personal de entrenamiento y nutrición para entrenar en casa (cinta, banco, mancuernas) con el objetivo de físico tipo Toji Fushiguro. Funciona como PWA instalable en Android.
 
-## Aviso de privacidad — léelo
+## Privacidad
 
-Este repositorio es **público** (GitHub Pages gratuito no permite publicar desde repos privados). Eso significa que **el código de la app** es visible para cualquiera. Sin embargo:
-
-- Tus datos reales — peso, entrenamientos registrados, lista de la compra, etc. — **nunca se suben a este repositorio ni a ningún servidor**. Viven solo en el `localStorage` de tu navegador/móvil.
-- La web tiene un candado simple (contraseña) para que quien tenga el link no vea tus datos a la primera. **Esto no es seguridad real**: el código que valida la contraseña es público, así que alguien con conocimientos técnicos podría saltárselo. Sirve como disuasorio, no como protección real.
-- No compartas el link de la web públicamente si no quieres que nadie lo intente abrir.
+Este repositorio es **público** (GitHub Pages gratuito no permite publicar desde repos privados), así que **el código** de la app es visible para cualquiera. Pero el acceso real es por cuenta: cada persona inicia sesión con su email y contraseña (Firebase Authentication), y su progreso solo lo puede leer/escribir esa cuenta (reglas de Firestore). Eso sí es privacidad real, no un candado de cara.
 
 ## Cómo usarla
 
-1. Abre la URL de GitHub Pages en tu móvil (Android recomendado, para vibración y notificaciones).
-2. La primera vez, crea tu contraseña de acceso.
-3. En el navegador, usa "Añadir a pantalla de inicio" para instalarla como app (icono propio, pantalla completa, funciona offline).
-4. Activa las notificaciones cuando te lo pida, para que el temporizador de descanso te avise aunque tengas la pantalla apagada un momento.
+1. Abre la URL de GitHub Pages en el móvil (Android recomendado, para vibración y notificaciones).
+2. Crea tu cuenta la primera vez (email + contraseña) — cada persona la suya.
+3. Usa "Añadir a pantalla de inicio" para instalarla como app (icono propio, pantalla completa, funciona offline).
+4. Activa las notificaciones cuando te lo pida, para que el temporizador de descanso avise aunque tengas la pantalla apagada un momento.
+
+## Configurar Firebase (una sola vez)
+
+La app necesita un proyecto Firebase gratuito para el login y guardar el progreso en la nube:
+
+1. https://console.firebase.google.com → crear proyecto.
+2. Compilación → Authentication → Sign-in method → activar **Correo electrónico/contraseña**.
+3. Compilación → Firestore Database → crear base de datos (modo producción).
+4. En Firestore → Reglas, pegar:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+     }
+   }
+   ```
+5. Panel del proyecto → icono web `</>` → registrar app → copiar el objeto `firebaseConfig` en `js/firebase-config.js`.
 
 ## Qué incluye
 
@@ -29,7 +45,7 @@ Este repositorio es **público** (GitHub Pages gratuito no permite publicar desd
 
 ## Cambiar tu contraseña
 
-Ajustes (icono de engranaje, arriba a la derecha) → "Cambiar contraseña de acceso".
+Pantalla de acceso → "¿Has olvidado tu contraseña?" (te llega un email de Firebase para restablecerla). Cerrar sesión: Ajustes (engranaje) → "Cerrar sesión".
 
 ## Actualizar el contenido
 

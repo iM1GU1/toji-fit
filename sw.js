@@ -1,15 +1,15 @@
 /* sw.js — service worker mínimo: cachea la app para que funcione offline
    y se pueda instalar como app en la pantalla de inicio. */
 
-const CACHE = "toji-fit-v1";
+const CACHE = "toji-fit-v2";
 const ASSETS = [
   "./", "./index.html", "./manifest.json",
   "./css/style.css",
-  "./js/store.js", "./js/engine.js", "./js/gate.js",
+  "./js/firebase-config.js", "./js/store.js", "./js/engine.js", "./js/auth.js",
   "./js/view-rutina.js", "./js/view-entrenar.js", "./js/view-comer.js", "./js/view-guias.js", "./js/view-yo.js",
   "./js/main.js",
   "./data/exercises.json", "./data/routine.json", "./data/recipes.json", "./data/nutrition.json",
-  "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png"
+  "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/flame.svg", "./icons/hero-silhouette.svg"
 ];
 
 self.addEventListener("install", event => {

@@ -2,10 +2,14 @@
    Todo vive en el navegador del usuario. No hay backend ni se envía nada a ningún servidor. */
 
 const Store = (() => {
-  const LS_KEY = "tojifit_state_v1";
-  const LS_AUTH = "tojifit_auth_v1";
-
   let data = { exercises: [], routine: null, recipes: [], nutrition: null };
+
+  // ---------- sincronización remota (Firestore, una vez autenticado) ----------
+  let remoteUid = null;
+  let db = null;
+  let pushTimer = null;
+
+  function lsKey() { return remoteUid ? `tojifit_state_v1_${remoteUid}` : "tojifit_state_v1_anon"; }
 
   function defaultState(nutrition) {
     const perfil = (nutrition && nutrition.perfil_defecto) || { edad: 23, altura_cm: 165, peso_kg: 86, sexo: "hombre" };
@@ -18,6 +22,7 @@ const Store = (() => {
       mealPlan: {},              // { [dow]: { [mealId]: recipeId } }
       shoppingList: { items: [], generatedFrom: null },
       todoWeek: { weekStart: null, days: {}, habits: {} },
+      dayLog: {},                 // { 'YYYY-MM-DD': true } — días marcados como cumplidos (racha)
       settings: { restTimerDefault: 90, soundOn: true, vibrateOn: true }
     };
   }
@@ -26,7 +31,7 @@ const Store = (() => {
 
   function load() {
     try {
-      const raw = localStorage.getItem(LS_KEY);
+      const raw = localStorage.getItem(lsKey());
       if (raw) state = JSON.parse(raw);
     } catch (e) { console.warn("No se pudo leer el estado guardado", e); }
     if (!state) state = defaultState(data.nutrition);
@@ -37,8 +42,45 @@ const Store = (() => {
   }
 
   function save() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+    try { localStorage.setItem(lsKey(), JSON.stringify(state)); }
     catch (e) { console.warn("No se pudo guardar el estado", e); }
+    schedulePush();
+  }
+
+  function schedulePush() {
+    if (!remoteUid || !db) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(() => {
+      db.collection("users").doc(remoteUid).set(state).catch(e => console.warn("No se pudo sincronizar con la nube", e));
+    }, 1200);
+  }
+
+  async function initRemote(uid) {
+    remoteUid = uid;
+    db = firebase.firestore();
+    load(); // copia local primero (rápido, funciona sin conexión)
+    try {
+      const snap = await db.collection("users").doc(uid).get();
+      if (snap.exists) {
+        const remote = snap.data();
+        const d = defaultState(data.nutrition);
+        state = {
+          ...d, ...remote,
+          profile: { ...d.profile, ...(remote.profile || {}) },
+          settings: { ...d.settings, ...(remote.settings || {}) }
+        };
+        localStorage.setItem(lsKey(), JSON.stringify(state));
+      } else {
+        await db.collection("users").doc(uid).set(state);
+      }
+    } catch (e) { console.warn("Firestore no disponible ahora mismo, sigo con la copia local", e); }
+    return state;
+  }
+
+  function clearRemote() {
+    remoteUid = null; db = null;
+    clearTimeout(pushTimer);
+    state = null;
   }
 
   async function loadData() {
@@ -52,13 +94,6 @@ const Store = (() => {
     load();
     return data;
   }
-
-  // ---------- auth (candado simple, ver gate.js) ----------
-  function getAuth() {
-    try { return JSON.parse(localStorage.getItem(LS_AUTH) || "null"); }
-    catch (e) { return null; }
-  }
-  function setAuth(obj) { localStorage.setItem(LS_AUTH, JSON.stringify(obj)); }
 
   // ---------- exercises ----------
   function getExercise(id) { return data.exercises.find(e => e.id === id); }
@@ -169,6 +204,7 @@ const Store = (() => {
     w.finishedAt = Date.now();
     state.workoutHistory.unshift(w);
     state.activeWorkout = null;
+    state.dayLog[new Date().toISOString().slice(0, 10)] = true;
     save();
   }
   function discardWorkout() { state.activeWorkout = null; save(); }
@@ -184,6 +220,16 @@ const Store = (() => {
     save();
   }
   function getWeightLog() { return state.weightLog; }
+
+  // ---------- racha / días marcados ----------
+  function toggleDayDone(date) {
+    date = date || new Date().toISOString().slice(0, 10);
+    if (state.dayLog[date]) delete state.dayLog[date];
+    else state.dayLog[date] = true;
+    save();
+  }
+  function isDayDone(date) { return !!state.dayLog[date]; }
+  function getDayLog() { return state.dayLog; }
 
   // ---------- plan de comidas ----------
   function getRecipe(id) { return data.recipes.find(r => r.id === id); }
@@ -287,12 +333,13 @@ const Store = (() => {
 
   return {
     loadData, get data() { return data; }, get state() { return state; },
-    getAuth, setAuth,
+    initRemote, clearRemote,
     getExercise, exercisesByGroup,
     getDay, getResolvedDay, getAllResolvedDays, suggestSubstitutes, substitute, revertSubstitute, updateExerciseFields, revertEdits,
     getProfile, setProfile,
     startWorkout, getActiveWorkout, updateSet, addSet, finishWorkout, discardWorkout, getHistory,
     addWeight, getWeightLog,
+    toggleDayDone, isDayDone, getDayLog,
     getRecipe, recipesFor, getMealPlanDay, setMealPlanRecipe,
     generateShoppingList, getShoppingList, toggleShoppingItem, addCustomShoppingItem, clearCheckedShoppingItems,
     getTodoWeek, toggleTodoDay, toggleTodoHabit,

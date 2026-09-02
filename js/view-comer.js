@@ -191,7 +191,7 @@ const ViewComer = (() => {
               <span>${it.item}${it.unidad ? ` — ${it.cantidad} ${it.unidad}` : ""}</span>
             </label>`).join("")}
         </div>
-      `).join("") : `<div class="empty">Lista vacía. Elige recetas en la pestaña Nutrición y pulsa Regenerar.</div>`}
+      `).join("") : `<div class="empty"><img class="toji-art" src="icons/hero-silhouette.svg" alt="">Lista vacía. Elige recetas en Nutrición y pulsa Regenerar.</div>`}
       <div class="add-row">
         <input type="text" id="custom-item" placeholder="Añadir algo suelto…">
         <button class="btn primary small" id="btn-add-item">Añadir</button>
