@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>Plan Toji</title>
+<meta name="theme-color" content="#131110">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/icon.svg">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="gate">
+  <div class="gate-card">
+    <p class="mark">Sorcerer Killer</p>
+    <h1>Plan Toji</h1>
+    <input type="password" id="gate-input" inputmode="text" autocomplete="off" placeholder="Contraseña" autofocus>
+    <button id="gate-btn" class="btn primary" style="width:100%">Entrar</button>
+    <p class="gate-err" id="gate-err"></p>
+  </div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div class="brand">Plan <span>Toji</span></div>
+    <button class="icon-btn" id="btn-settings" aria-label="Ajustes">⚙️</button>
+  </header>
+
+  <main id="main">
+    <section class="view" id="view-rutina"></section>
+    <section class="view" id="view-entrenar"></section>
+    <section class="view" id="view-comer"></section>
+    <section class="view" id="view-guias"></section>
+    <section class="view" id="view-yo"></section>
+  </main>
+
+  <nav class="bottom" id="bottom-nav">
+    <button data-view="rutina" class="active"><span class="ic">🗓️</span>Rutina</button>
+    <button data-view="entrenar"><span class="ic">🏋️</span>Entrenar</button>
+    <button data-view="comer"><span class="ic">🍽️</span>Comer</button>
+    <button data-view="guias"><span class="ic">📖</span>Guías</button>
+    <button data-view="yo"><span class="ic">📈</span>Yo</button>
+  </nav>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="js/store.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/gate.js"></script>
+<script src="js/view-rutina.js"></script>
+<script src="js/view-entrenar.js"></script>
+<script src="js/view-comer.js"></script>
+<script src="js/view-guias.js"></script>
+<script src="js/view-yo.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
