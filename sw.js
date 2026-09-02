@@ -1,13 +1,13 @@
 /* sw.js — service worker mínimo: cachea la app para que funcione offline
    y se pueda instalar como app en la pantalla de inicio. */
 
-const CACHE = "toji-fit-v2";
+const CACHE = "toji-fit-v3";
 const ASSETS = [
   "./", "./index.html", "./manifest.json",
-  "./css/style.css",
-  "./js/firebase-config.js", "./js/store.js", "./js/engine.js", "./js/auth.js",
-  "./js/view-rutina.js", "./js/view-entrenar.js", "./js/view-comer.js", "./js/view-guias.js", "./js/view-yo.js",
-  "./js/main.js",
+  "./css/style.css?v=3",
+  "./js/firebase-config.js?v=3", "./js/store.js?v=3", "./js/engine.js?v=3", "./js/auth.js?v=3",
+  "./js/view-rutina.js?v=3", "./js/view-entrenar.js?v=3", "./js/view-comer.js?v=3", "./js/view-guias.js?v=3", "./js/view-yo.js?v=3",
+  "./js/main.js?v=3",
   "./data/exercises.json", "./data/routine.json", "./data/recipes.json", "./data/nutrition.json",
   "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/flame.svg", "./icons/hero-silhouette.svg"
 ];

@@ -51,6 +51,16 @@ Pantalla de acceso → "¿Has olvidado tu contraseña?" (te llega un email de Fi
 
 Todo el contenido (ejercicios, rutina, recetas, objetivos de nutrición) vive en archivos JSON dentro de `data/`. Puedes editarlos directamente en GitHub o pedirle a Claude que lo actualice.
 
+## Después de subir un cambio en el código (`.js` / `.css`)
+
+GitHub Pages cachea esos archivos hasta 10 minutos, y el móvil (como PWA instalada) los cachea aparte con el service worker. Para que el cambio se vea al momento en vez de esperar:
+
+1. Sube los archivos `.js`/`.css` modificados como siempre.
+2. Sube también `index.html` con el número de versión (`?v=3`, `?v=4`, …) subido en **todas** las etiquetas `<script>`/`<link>` que apunten a `js/` o `css/`.
+3. Sube `sw.js` con `CACHE` y las rutas de `ASSETS` actualizadas al mismo número de versión.
+
+Si solo subes el `.js` sin subir `index.html`/`sw.js` con el número de versión nuevo, puede tardar hasta 10 minutos en verse el cambio.
+
 ## Desarrollo local
 
 No hay build ni dependencias. Sirve la carpeta con cualquier servidor estático, por ejemplo:
