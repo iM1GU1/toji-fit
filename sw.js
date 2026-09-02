@@ -1,13 +1,13 @@
 /* sw.js — service worker mínimo: cachea la app para que funcione offline
    y se pueda instalar como app en la pantalla de inicio. */
 
-const CACHE = "toji-fit-v6";
+const CACHE = "toji-fit-v7";
 const ASSETS = [
   "./", "./index.html", "./manifest.json",
-  "./css/style.css?v=6",
-  "./js/firebase-config.js?v=6", "./js/store.js?v=6", "./js/engine.js?v=6", "./js/auth.js?v=6",
-  "./js/view-rutina.js?v=6", "./js/view-entrenar.js?v=6", "./js/view-comer.js?v=6", "./js/view-guias.js?v=6", "./js/view-amigos.js?v=6", "./js/view-yo.js?v=6",
-  "./js/main.js?v=6",
+  "./css/style.css?v=7",
+  "./js/firebase-config.js?v=7", "./js/store.js?v=7", "./js/engine.js?v=7", "./js/auth.js?v=7",
+  "./js/view-rutina.js?v=7", "./js/view-entrenar.js?v=7", "./js/view-comer.js?v=7", "./js/view-guias.js?v=7", "./js/view-amigos.js?v=7", "./js/view-yo.js?v=7",
+  "./js/main.js?v=7",
   "./data/exercises.json", "./data/routine.json", "./data/recipes.json", "./data/nutrition.json",
   "./icons/icon.svg", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/flame.svg", "./icons/hero-silhouette.svg"
 ];

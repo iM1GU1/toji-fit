@@ -74,7 +74,10 @@ La pestaña "Amigos" necesita 3 colecciones nuevas (`usersPublic`, `friendships`
 - **Comer → Nutrición**: calorías y macros calculados a partir de tu edad/altura/peso (fórmula Mifflin-St Jeor), repartidos en 3 comidas sin desayuno.
 - **Comer → Recetas**: recetas guiadas paso a paso para cada comida.
 - **Comer → Compra**: lista de la compra generada automáticamente a partir del plan de comidas de la semana.
+- **XP y niveles**: cada serie que marcas como hecha da XP (peso × repeticiones; un PR paga el doble), con barra de progreso animada en la cabecera y en la pestaña Yo, y una celebración al subir de nivel.
+- **Récords personales (PR)**: la app recuerda tu mejor marca (1RM estimado) de cada ejercicio. En cuanto la superas, aparece un aviso de "¡Nuevo PR!" con confeti, al momento.
 - **Amigos**: añade a alguien por su email (debe tener ya cuenta creada) y ve un feed con sus últimos entrenamientos terminados — se publica automáticamente cuando alguien pulsa "Terminar entrenamiento". Solo ves el feed de la gente que has añadido, nadie ve el tuyo sin que lo añadas.
+- **Reto semanal**: dentro de Amigos, una clasificación de XP ganada esta semana entre tú y cada amigo/a — se reinicia cada lunes. Usa las mismas colecciones/reglas de Firestore que "Amigos" (no hace falta ningún paso adicional de configuración).
 - **Yo**: registro de peso con gráfica, racha de días cumplidos, y consejos automáticos (motor de reglas: si llevas días sin entrenar, si el peso está estancado, etc.).
 
 ## Cambiar tu contraseña
