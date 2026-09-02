@@ -96,6 +96,15 @@ p{margin:0 0 10px;}
   background:var(--bg);
   border-bottom:1px solid var(--border);
 }
+.xp-pill{
+  display:flex;align-items:center;gap:7px;
+  background:var(--surface-2);border:1px solid var(--border);
+  padding:6px 12px 6px 10px;border-radius:20px;
+}
+.xp-pill .lvl{font-family:var(--font-mono);font-weight:700;font-size:0.78rem;color:var(--accent-2);white-space:nowrap;}
+.xp-bar-mini{width:40px;height:5px;border-radius:3px;background:var(--surface-3);overflow:hidden;}
+.xp-bar-mini .xp-bar-fill{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:3px;transition:width .5s cubic-bezier(.16,1,.3,1);}
+
 .topbar .streak-pill{
   display:flex;align-items:center;gap:6px;
   background:var(--surface-2);
@@ -383,6 +392,65 @@ nav.bottom button:active{transform:scale(0.92);}
 
 .settings-panel{position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:60;display:flex;align-items:flex-end;}
 .settings-panel .sheet{background:var(--bg);width:100%;border-radius:16px 16px 0 0;padding:20px 18px calc(24px + var(--safe-bottom));max-height:80vh;overflow-y:auto;border-top:1px solid var(--border);}
+
+/* ---------------- XP / niveles (tarjeta grande, tab Yo) ---------------- */
+.xp-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:16px;}
+.xp-card .xp-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;}
+.xp-card .xp-lvl-num{font-family:var(--font-display);font-size:1.4rem;text-transform:uppercase;letter-spacing:0.02em;color:var(--accent);}
+.xp-bar-big{height:10px;border-radius:6px;background:var(--surface-3);overflow:hidden;}
+.xp-bar-big .fill{display:block;height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));border-radius:6px;transition:width .6s cubic-bezier(.16,1,.3,1);}
+
+/* ---------------- +XP flotante al completar una serie ---------------- */
+.floating-xp{
+  position:fixed;z-index:80;pointer-events:none;
+  font-family:var(--font-mono);font-weight:700;font-size:0.9rem;color:var(--accent-2);
+  background:color-mix(in srgb, var(--accent) 18%, var(--surface));
+  border:1px solid var(--accent);border-radius:14px;padding:3px 10px;
+  opacity:0;transform:translateY(0) scale(0.8);
+  transition:transform .8s cubic-bezier(.16,1,.3,1), opacity .8s;
+}
+.floating-xp.show{opacity:1;transform:translateY(-46px) scale(1);}
+.floating-xp.hide{opacity:0;transform:translateY(-70px) scale(0.92);}
+
+/* ---------------- celebración: PR / subida de nivel ---------------- */
+.celebrate-ov{
+  position:fixed;inset:0;z-index:90;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(10,9,7,0);transition:background .35s;overflow:hidden;
+}
+.celebrate-ov.show{background:rgba(10,9,7,0.6);}
+.celebrate-card{
+  background:var(--surface);border:1px solid var(--accent);border-radius:18px;
+  padding:26px 36px;text-align:center;max-width:82vw;
+  transform:scale(0.6) translateY(10px);opacity:0;
+  transition:transform .45s cubic-bezier(.34,1.56,.64,1), opacity .35s;
+  box-shadow:0 8px 40px rgba(238,125,47,0.28);
+}
+.celebrate-ov.show .celebrate-card{transform:scale(1) translateY(0);opacity:1;}
+.celebrate-title{font-family:var(--font-display);font-size:1.5rem;text-transform:uppercase;letter-spacing:0.02em;color:var(--accent-2);}
+.celebrate-ov.levelup .celebrate-title{color:var(--accent);font-size:1.7rem;}
+.celebrate-sub{color:var(--muted);font-size:0.88rem;margin-top:6px;}
+.confetti-piece{
+  position:absolute;top:40%;width:8px;height:8px;border-radius:2px;
+  animation:confettiFall var(--d,0.9s) ease-out forwards;
+}
+@keyframes confettiFall{
+  0%{transform:translate(0,0) rotate(0deg);opacity:1;}
+  100%{transform:translate(var(--x,0), 220px) rotate(var(--r,180deg));opacity:0;}
+}
+
+/* ---------------- reto / duelo semanal (tab Amigos) ---------------- */
+.duel-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:16px;}
+.duel-row{display:flex;align-items:center;gap:10px;padding:7px 0;}
+.duel-row .dr-name{width:92px;flex:0 0 auto;font-size:0.82rem;font-weight:600;display:flex;align-items:center;gap:5px;overflow:hidden;}
+.duel-row .dr-name-txt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;}
+.duel-row.me .dr-name{color:var(--accent-2);}
+.lead-tag{flex:0 0 auto;font-size:0.58rem;background:var(--accent);color:var(--accent-ink);padding:1px 6px;border-radius:8px;text-transform:uppercase;letter-spacing:0.02em;font-weight:800;}
+.duel-bar-track{flex:1;height:10px;border-radius:6px;background:var(--surface-3);overflow:hidden;}
+.duel-bar-track .fill{display:block;height:100%;border-radius:6px;background:var(--muted);transition:width .6s cubic-bezier(.16,1,.3,1);}
+.duel-row.me .duel-bar-track .fill,.duel-row.lead .duel-bar-track .fill{background:linear-gradient(90deg,var(--accent),var(--accent-2));}
+.duel-row .dr-xp{width:48px;flex:0 0 auto;text-align:right;font-family:var(--font-mono);font-size:0.78rem;color:var(--muted);}
+.duel-row.me .dr-xp,.duel-row.lead .dr-xp{color:var(--accent-2);}
 .settings-panel .sheet h2{margin-bottom:14px;}
 .field{margin-bottom:14px;}
 .field label{display:block;font-size:0.78rem;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.03em;}
