@@ -122,5 +122,32 @@ const Engine = (() => {
     return tips;
   }
 
-  return { bmr, tdee, calcTargets, mealTargets, bmi, weightTrendAdvice, homeTips, computeStreak };
+  // ---------- XP y niveles ----------
+  // XP por serie: peso(kg) × reps. Sin peso externo (peso corporal), reps×3 como base.
+  // Un PR paga el doble. Curva de nivel exponencial: cada nivel cuesta más que el anterior.
+  function xpForSet(peso, reps, isPR) {
+    peso = Number(peso) || 0;
+    reps = Math.max(0, Math.round(Number(reps) || 0));
+    if (reps <= 0) return 0;
+    const raw = peso > 0 ? peso * reps : reps * 3;
+    return Math.max(1, Math.round(raw * (isPR ? 2 : 1)));
+  }
+
+  function xpForLevel(level) {
+    if (level <= 1) return 0;
+    return Math.round(60 * Math.pow(level - 1, 2.05));
+  }
+
+  function levelFromXp(totalXp) {
+    totalXp = Math.max(0, Number(totalXp) || 0);
+    let level = 1;
+    while (xpForLevel(level + 1) <= totalXp) level++;
+    const curFloor = xpForLevel(level);
+    const nextFloor = xpForLevel(level + 1);
+    const span = Math.max(1, nextFloor - curFloor);
+    const into = totalXp - curFloor;
+    return { level, xpInto: into, xpSpan: span, pct: Math.min(1, into / span), xpToNext: Math.max(0, nextFloor - totalXp), totalXp };
+  }
+
+  return { bmr, tdee, calcTargets, mealTargets, bmi, weightTrendAdvice, homeTips, computeStreak, xpForSet, xpForLevel, levelFromXp };
 })();

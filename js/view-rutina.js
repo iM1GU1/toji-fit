@@ -2,8 +2,12 @@
 
 const ViewRutina = (() => {
   let selectedDay = "d1";
+  let expandedIdx = null; // idx del ejercicio con la ficha abierta (acordeón)
   let openSubFor = null; // idx del ejercicio con el panel de sustitución abierto
   let editingIdx = null;
+  let objetivoOpen = false;
+
+  const CHEVRON = `<svg class="ex-chevron" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 
   function root() { return document.getElementById("view-rutina"); }
 
@@ -12,8 +16,13 @@ const ViewRutina = (() => {
     const day = Store.getResolvedDay(selectedDay);
     const el = root();
     el.innerHTML = `
-      <div class="callout accent">
-        <strong>Objetivo:</strong> ${Store.data.routine.meta.objetivo}
+      <div class="obj-strip ${objetivoOpen ? "open" : ""}" id="obj-strip">
+        <button class="obj-head" id="obj-head" type="button">
+          <img class="flame-ico" src="icons/flame.svg" alt="">
+          <span class="lbl">Objetivo: físico Toji</span>
+          ${CHEVRON.replace("ex-chevron", "obj-chevron")}
+        </button>
+        <div class="obj-body"><div class="obj-body-inner">${Store.data.routine.meta.objetivo}</div></div>
       </div>
       <div class="day-picker">
         ${days.map(d => `<button data-day="${d.id}" class="${d.id === selectedDay ? "active" : ""}">${d.nombre.replace("Día ", "D")}</button>`).join("")}
@@ -25,8 +34,13 @@ const ViewRutina = (() => {
     `;
     renderList(day);
 
+    el.querySelector("#obj-head").addEventListener("click", () => {
+      objetivoOpen = !objetivoOpen;
+      el.querySelector("#obj-strip").classList.toggle("open", objetivoOpen);
+    });
+
     el.querySelectorAll(".day-picker button").forEach(b => {
-      b.addEventListener("click", () => { selectedDay = b.dataset.day; openSubFor = null; editingIdx = null; render(); });
+      b.addEventListener("click", () => { selectedDay = b.dataset.day; expandedIdx = null; openSubFor = null; editingIdx = null; render(); });
     });
     el.querySelector("#btn-start-workout").addEventListener("click", () => {
       Store.startWorkout(selectedDay);
@@ -40,6 +54,14 @@ const ViewRutina = (() => {
 
     day.ejercicios.forEach(ex => {
       const rowEl = list.querySelector(`[data-row="${ex.idx}"]`);
+      rowEl.querySelector(".ex-head").addEventListener("click", () => {
+        if (expandedIdx === ex.idx) {
+          expandedIdx = null; openSubFor = null; editingIdx = null;
+        } else {
+          expandedIdx = ex.idx; openSubFor = null; editingIdx = null;
+        }
+        renderList(day);
+      });
       rowEl.querySelector(".btn-guide").addEventListener("click", () => {
         App.goTo("guias", { exerciseId: ex.exercise_id });
       });
@@ -104,20 +126,25 @@ const ViewRutina = (() => {
 
   function rowHtml(ex) {
     const e = ex.exercise;
+    const open = expandedIdx === ex.idx;
     return `
-    <div class="ex-row" data-row="${ex.idx}">
-      <div class="ex-top">
-        <div>
+    <div class="ex-row ${open ? "open" : ""}" data-row="${ex.idx}">
+      <button class="ex-head" type="button">
+        <div class="ex-head-main">
           <div class="ex-name">${e ? e.nombre : ex.exercise_id}</div>
-          <div class="row wrap" style="gap:6px;margin-top:4px;">
+          <div class="ex-meta">
+            ${e ? `<span class="tag">${e.grupo}</span>` : ""}
             ${ex.isSubstituted ? `<span class="tag accent">sustituido</span>` : ""}
             ${ex.isEdited ? `<span class="tag accent">editado</span>` : ""}
-            ${e ? `<span class="tag">${e.grupo}</span>` : ""}
           </div>
-          ${ex.nota ? `<div class="ex-note">${ex.nota}</div>` : ""}
         </div>
-        <div class="ex-sr">${ex.series}×${ex.reps}</div>
-      </div>
+        <div class="ex-right">
+          <div class="ex-sr">${ex.series}×${ex.reps}</div>
+          ${CHEVRON}
+        </div>
+      </button>
+      <div class="ex-body"><div class="ex-body-inner">
+      ${ex.nota ? `<div class="ex-note">${ex.nota}</div>` : ""}
       <div class="ex-actions">
         <button class="btn small btn-guide">Guía</button>
         <button class="btn small btn-sub">Sustituir</button>
@@ -133,6 +160,7 @@ const ViewRutina = (() => {
         </div>
         <button class="btn small primary btn-save-edit" style="margin-top:8px;">Guardar</button>
       </div>
+      </div></div>
     </div>`;
   }
 

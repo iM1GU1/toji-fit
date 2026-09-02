@@ -27,6 +27,7 @@ const ViewAmigos = (() => {
         <button class="btn primary small" id="btn-add-friend">Añadir</button>
       </div>
       <p class="gate-err" id="friend-msg" style="margin:-10px 0 10px;"></p>
+      <div id="duel-section"></div>
       <div id="friends-list"><p class="muted" style="font-size:0.85rem;">Cargando…</p></div>
       <h3 style="margin:18px 0 10px;">Últimos entrenamientos</h3>
       <div id="friends-feed"><p class="muted" style="font-size:0.85rem;">Cargando…</p></div>
@@ -36,8 +37,49 @@ const ViewAmigos = (() => {
 
     friends = await Store.getFriends();
     renderFriendsList();
+    renderDuel();
     feed = await Store.getFriendsFeed(friends.map(f => f.uid));
     renderFeed();
+  }
+
+  function daysLeftInWeek() {
+    const dow = (new Date().getDay() + 6) % 7; // 0 = lunes
+    return 6 - dow;
+  }
+
+  function renderDuel() {
+    const elWrap = document.getElementById("duel-section");
+    if (!elWrap) return;
+    if (!friends.length) {
+      elWrap.innerHTML = `<div class="callout" style="font-size:0.82rem;">Añade a alguien para competir por XP cada semana.</div>`;
+      return;
+    }
+    const cwk = Store.currentWeekKey();
+    const my = Store.getWeeklyXp();
+    const myXp = my.weekStart === cwk ? my.xp : 0;
+    const rows = [{ me: true, name: "Tú", xp: myXp }];
+    friends.forEach(f => {
+      const fxp = f.weeklyXpWeekStart === cwk ? (f.weeklyXp || 0) : 0;
+      rows.push({ me: false, name: f.displayName || (f.email || "").split("@")[0], xp: fxp });
+    });
+    rows.sort((a, b) => b.xp - a.xp);
+    const max = Math.max(1, ...rows.map(r => r.xp));
+    const left = daysLeftInWeek();
+    elWrap.innerHTML = `
+      <div class="duel-card">
+        <div class="row between" style="margin-bottom:8px;">
+          <h3 style="margin:0;">Reto semanal</h3>
+          <span class="muted" style="font-size:0.76rem;">${left <= 0 ? "último día" : `quedan ${left} días`}</span>
+        </div>
+        ${rows.map((r, i) => `
+          <div class="duel-row ${r.me ? "me" : ""} ${i === 0 && r.xp > 0 ? "lead" : ""}">
+            <span class="dr-name"><span class="dr-name-txt">${r.name}</span>${i === 0 && r.xp > 0 ? `<span class="lead-tag">líder</span>` : ""}</span>
+            <div class="duel-bar-track"><div class="fill" style="width:${Math.round((r.xp / max) * 100)}%"></div></div>
+            <span class="dr-xp">${r.xp}</span>
+          </div>
+        `).join("")}
+      </div>
+    `;
   }
 
   function renderFriendsList() {
@@ -64,6 +106,7 @@ const ViewAmigos = (() => {
         friends = friends.filter(f => f.uid !== uid);
         feed = feed.filter(item => item.uid !== uid);
         renderFriendsList();
+        renderDuel();
         renderFeed();
         App.toast("Amigo eliminado");
       });
@@ -107,6 +150,7 @@ const ViewAmigos = (() => {
       App.toast("Amigo añadido");
       friends = await Store.getFriends();
       renderFriendsList();
+      renderDuel();
       feed = await Store.getFriendsFeed(friends.map(f => f.uid));
       renderFeed();
     } else {

@@ -20,6 +20,68 @@ const App = (() => {
     if (!Store.state) return;
     const s = Engine.computeStreak(Store.getDayLog());
     document.getElementById("streak-n").textContent = s.current;
+    updateXpPill();
+  }
+
+  function updateXpPill() {
+    if (!Store.state) return;
+    const info = Store.getXpInfo();
+    const lvlEl = document.getElementById("xp-level");
+    const fillEl = document.getElementById("xp-bar-fill");
+    if (lvlEl) lvlEl.textContent = info.level;
+    if (fillEl) fillEl.style.width = Math.round(info.pct * 100) + "%";
+  }
+
+  // ---------- feedback de dopamina: +XP flotante, confeti, celebración de PR/nivel ----------
+  function floatXp(anchorEl, amount) {
+    if (!anchorEl || !amount) return;
+    const rect = anchorEl.getBoundingClientRect();
+    const el = document.createElement("div");
+    el.className = "floating-xp";
+    el.textContent = "+" + amount + " XP";
+    el.style.left = Math.round(rect.left + rect.width / 2 - 32) + "px";
+    el.style.top = Math.round(rect.top - 4) + "px";
+    document.body.appendChild(el);
+    requestAnimationFrame(() => el.classList.add("show"));
+    setTimeout(() => el.classList.add("hide"), 750);
+    setTimeout(() => el.remove(), 1600);
+  }
+
+  function spawnConfetti(container) {
+    const colors = ["#ee7d2f", "#f4a940", "#5cae6f", "#f1ece1"];
+    for (let i = 0; i < 26; i++) {
+      const p = document.createElement("span");
+      p.className = "confetti-piece";
+      p.style.setProperty("--x", Math.round(Math.random() * 220 - 110) + "px");
+      p.style.setProperty("--r", Math.round(Math.random() * 360) + "deg");
+      p.style.setProperty("--d", (0.7 + Math.random() * 0.6).toFixed(2) + "s");
+      p.style.left = (42 + Math.random() * 16) + "%";
+      p.style.background = colors[i % colors.length];
+      container.appendChild(p);
+    }
+  }
+
+  let celebrateBusy = false;
+  const celebrateQueue = [];
+  function celebrate(opts) {
+    celebrateQueue.push(opts);
+    if (!celebrateBusy) runNextCelebration();
+  }
+  function runNextCelebration() {
+    const opts = celebrateQueue.shift();
+    if (!opts) { celebrateBusy = false; return; }
+    celebrateBusy = true;
+    const ov = document.createElement("div");
+    ov.className = "celebrate-ov " + (opts.type || "");
+    ov.innerHTML = `<div class="celebrate-card"><div class="celebrate-title">${opts.title}</div>${opts.subtitle ? `<div class="celebrate-sub">${opts.subtitle}</div>` : ""}</div>`;
+    document.body.appendChild(ov);
+    spawnConfetti(ov);
+    if (Store.getSettings && Store.getSettings().vibrateOn && navigator.vibrate) navigator.vibrate([70, 40, 70, 40, 160]);
+    requestAnimationFrame(() => ov.classList.add("show"));
+    setTimeout(() => {
+      ov.classList.remove("show");
+      setTimeout(() => { ov.remove(); runNextCelebration(); }, 350);
+    }, 1650);
   }
 
   function goTo(viewName, params) {
@@ -114,5 +176,5 @@ const App = (() => {
     Auth.init(onAuthed, onSignedOut);
   });
 
-  return { goTo, toast, updateStreakPill };
+  return { goTo, toast, updateStreakPill, celebrate, floatXp };
 })();

@@ -34,7 +34,10 @@ const Store = (() => {
       shoppingList: { items: [], generatedFrom: null },
       todoWeek: { weekStart: null, days: {}, habits: {} },
       dayLog: {},                 // { 'YYYY-MM-DD': true } — días marcados como cumplidos (racha)
-      settings: { restTimerDefault: 90, soundOn: true, vibrateOn: true }
+      settings: { restTimerDefault: 90, soundOn: true, vibrateOn: true },
+      xp: 0,                      // XP acumulada total (ver engine.js: levelFromXp)
+      personalRecords: {},        // { [exercise_id]: {peso, reps, est, at} } — mejor 1RM estimado por ejercicio
+      weeklyXp: { weekStart: null, xp: 0 } // XP de la semana en curso, para el reto con amigos
     };
   }
 
@@ -63,6 +66,13 @@ const Store = (() => {
     clearTimeout(pushTimer);
     pushTimer = setTimeout(() => {
       db.collection("users").doc(remoteUid).set(state).catch(e => console.warn("No se pudo sincronizar con la nube", e));
+      // Publica nivel y XP de la semana en el perfil público, para que el reto semanal
+      // con amigos pueda leerlos (misma colección/regla que ya usa la foto de perfil pública).
+      const xpInfo = Engine.levelFromXp(state.xp || 0);
+      const wk = ensureWeeklyXp();
+      db.collection("usersPublic").doc(remoteUid).set({
+        level: xpInfo.level, xp: state.xp || 0, weeklyXp: wk.xp, weeklyXpWeekStart: wk.weekStart, updatedAt: Date.now()
+      }, { merge: true }).catch(e => console.warn("No se pudo publicar el progreso semanal", e));
     }, 1200);
   }
 
@@ -295,6 +305,54 @@ const Store = (() => {
   function discardWorkout() { state.activeWorkout = null; save(); }
   function getHistory() { return state.workoutHistory; }
 
+  // ---------- gamificación: XP, niveles, PRs y reto semanal ----------
+  function weekKeyOf(d) {
+    const dt = new Date(d || Date.now());
+    const day = (dt.getDay() + 6) % 7; // 0 = lunes
+    dt.setDate(dt.getDate() - day);
+    return localDateStr(dt);
+  }
+  function currentWeekKey() { return weekKeyOf(new Date()); }
+
+  function ensureWeeklyXp() {
+    const wk = currentWeekKey();
+    if (!state.weeklyXp || state.weeklyXp.weekStart !== wk) state.weeklyXp = { weekStart: wk, xp: 0 };
+    return state.weeklyXp;
+  }
+
+  // PR = mejor 1RM estimado (fórmula de Epley) para ese ejercicio. Sin peso externo
+  // (ejercicios a peso corporal), usamos las repeticiones directamente como referencia.
+  function checkAndSetPR(exerciseId, peso, reps) {
+    peso = Number(peso) || 0; reps = Number(reps) || 0;
+    if (!exerciseId || reps <= 0) return { isPR: false };
+    const est = peso > 0 ? peso * (1 + reps / 30) : reps;
+    const prev = state.personalRecords[exerciseId];
+    const isPR = !prev || est > prev.est + 0.001;
+    if (isPR) state.personalRecords[exerciseId] = { peso, reps, est, at: Date.now() };
+    return { isPR, prev: prev || null, est };
+  }
+
+  function awardXp(amount) {
+    const before = Engine.levelFromXp(state.xp || 0);
+    state.xp = (state.xp || 0) + amount;
+    ensureWeeklyXp().xp += amount;
+    const after = Engine.levelFromXp(state.xp);
+    return { before, after, leveledUp: after.level > before.level, amount };
+  }
+
+  // Se llama al marcar una serie como hecha: calcula XP, detecta PR y guarda.
+  function completeSet(exerciseId, peso, reps) {
+    const pr = checkAndSetPR(exerciseId, peso, reps);
+    const xpAmount = Engine.xpForSet(peso, reps, pr.isPR);
+    const xpResult = awardXp(xpAmount);
+    save();
+    return { ...xpResult, isPR: pr.isPR, xpAmount };
+  }
+
+  function getXpInfo() { return Engine.levelFromXp(state.xp || 0); }
+  function getWeeklyXp() { return ensureWeeklyXp(); }
+  function getPersonalRecord(exerciseId) { return state.personalRecords[exerciseId] || null; }
+
   // ---------- peso corporal ----------
   function addWeight(kg, date) {
     date = date || localDateStr();
@@ -425,6 +483,7 @@ const Store = (() => {
     getDay, getResolvedDay, getAllResolvedDays, suggestSubstitutes, substitute, revertSubstitute, updateExerciseFields, revertEdits,
     getProfile, setProfile,
     startWorkout, getActiveWorkout, updateSet, addSet, finishWorkout, discardWorkout, getHistory,
+    completeSet, getXpInfo, getWeeklyXp, getPersonalRecord, currentWeekKey,
     addWeight, getWeightLog,
     toggleDayDone, isDayDone, getDayLog,
     getRecipe, recipesFor, getMealPlanDay, setMealPlanRecipe,

@@ -21,12 +21,22 @@ const ViewYo = (() => {
     const todayStr = fmt(new Date());
     const tips = Engine.homeTips(Store);
     const weightLog = Store.getWeightLog();
+    const xpInfo = Store.getXpInfo();
 
     el.innerHTML = `
       <div class="streak-hero">
         <img class="flame-big" src="icons/flame.svg" alt="">
         <div class="num">${streak.current}</div>
         <div class="lbl">${streak.current === 1 ? "día seguido" : "días seguidos"}${streak.best > streak.current ? ` · récord ${streak.best}` : ""}</div>
+      </div>
+
+      <div class="xp-card">
+        <div class="xp-top">
+          <span class="xp-lvl-num">Nivel ${xpInfo.level}</span>
+          <span class="mono muted" style="font-size:0.78rem;">${xpInfo.xpInto}/${xpInfo.xpSpan} XP</span>
+        </div>
+        <div class="xp-bar-big"><div class="fill" style="width:${Math.round(xpInfo.pct * 100)}%"></div></div>
+        <p class="muted" style="font-size:0.78rem;margin:8px 0 0;">Ganas XP al completar series: más peso y reps, más XP. Un PR vale el doble.</p>
       </div>
 
       <div class="week-ticks">

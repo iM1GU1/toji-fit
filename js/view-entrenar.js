@@ -193,7 +193,21 @@ const ViewEntrenar = (() => {
           Store.updateSet(ei, si, { done: nowDone });
           checkBtn.classList.toggle("done", nowDone);
           checkBtn.textContent = nowDone ? "✓" : "";
-          if (nowDone) startTimer(Store.getSettings().restTimerDefault || 90);
+          if (nowDone) {
+            startTimer(Store.getSettings().restTimerDefault || 90);
+            if (!s.xpAwarded && Number(s.reps) > 0) {
+              const result = Store.completeSet(entry.exercise_id, s.peso, s.reps);
+              Store.updateSet(ei, si, { xpAwarded: true });
+              App.floatXp(checkBtn, result.xpAmount);
+              App.updateStreakPill();
+              if (result.leveledUp) {
+                App.celebrate({ type: "levelup", title: `¡Nivel ${result.after.level}!`, subtitle: "Sigue así 💪" });
+              }
+              if (result.isPR) {
+                App.celebrate({ type: "pr", title: "¡Nuevo PR!", subtitle: entry.nombre });
+              }
+            }
+          }
         });
       });
     });
