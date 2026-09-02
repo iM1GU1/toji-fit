@@ -4,6 +4,17 @@
 const Store = (() => {
   let data = { exercises: [], routine: null, recipes: [], nutrition: null };
 
+  // Fecha local en formato YYYY-MM-DD, SIN pasar por toISOString (que convierte a UTC
+  // y desplaza el día en zonas horarias con offset positivo, como España). Esta es la
+  // única función que debe usarse para generar o comparar claves de fecha en toda la app.
+  function localDateStr(d) {
+    d = d || new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+
   // ---------- sincronización remota (Firestore, una vez autenticado) ----------
   let remoteUid = null;
   let db = null;
@@ -204,7 +215,7 @@ const Store = (() => {
     w.finishedAt = Date.now();
     state.workoutHistory.unshift(w);
     state.activeWorkout = null;
-    state.dayLog[new Date().toISOString().slice(0, 10)] = true;
+    state.dayLog[localDateStr()] = true;
     save();
   }
   function discardWorkout() { state.activeWorkout = null; save(); }
@@ -212,7 +223,7 @@ const Store = (() => {
 
   // ---------- peso corporal ----------
   function addWeight(kg, date) {
-    date = date || new Date().toISOString().slice(0, 10);
+    date = date || localDateStr();
     state.weightLog = state.weightLog.filter(w => w.date !== date);
     state.weightLog.push({ date, kg: Number(kg) });
     state.weightLog.sort((a, b) => a.date.localeCompare(b.date));
@@ -223,7 +234,7 @@ const Store = (() => {
 
   // ---------- racha / días marcados ----------
   function toggleDayDone(date) {
-    date = date || new Date().toISOString().slice(0, 10);
+    date = date || localDateStr();
     if (state.dayLog[date]) delete state.dayLog[date];
     else state.dayLog[date] = true;
     save();
@@ -306,7 +317,7 @@ const Store = (() => {
     const dt = new Date(d);
     const day = (dt.getDay() + 6) % 7; // 0=lunes
     dt.setDate(dt.getDate() - day);
-    return dt.toISOString().slice(0, 10);
+    return localDateStr(dt);
   }
   function getTodoWeek() {
     const monday = mondayOf(new Date());
@@ -333,6 +344,7 @@ const Store = (() => {
 
   return {
     loadData, get data() { return data; }, get state() { return state; },
+    localDateStr,
     initRemote, clearRemote,
     getExercise, exercisesByGroup,
     getDay, getResolvedDay, getAllResolvedDays, suggestSubstitutes, substitute, revertSubstitute, updateExerciseFields, revertEdits,

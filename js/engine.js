@@ -38,8 +38,13 @@ const Engine = (() => {
   // Racha: días consecutivos marcados como cumplidos, terminando hoy o ayer
   // (si hoy aún no se ha marcado, no rompe la racha hasta que acabe el día).
   function computeStreak(dayLog) {
+    // Fecha local YYYY-MM-DD sin pasar por toISOString (evita el desplazamiento de
+    // día que provoca en zonas con offset UTC positivo, p.ej. España).
+    const fmt = d => {
+      const y = d.getFullYear(), m = String(d.getMonth() + 1).padStart(2, "0"), day = String(d.getDate()).padStart(2, "0");
+      return `${y}-${m}-${day}`;
+    };
     const toDate = s => new Date(s + "T00:00:00");
-    const fmt = d => d.toISOString().slice(0, 10);
     const today = new Date(); today.setHours(0, 0, 0, 0);
     const todayStr = fmt(today);
     const yesterday = new Date(today); yesterday.setDate(yesterday.getDate() - 1);

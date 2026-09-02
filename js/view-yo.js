@@ -4,7 +4,7 @@ const ViewYo = (() => {
   const DOW_LABELS = ["L", "M", "X", "J", "V", "S", "D"];
 
   function root() { return document.getElementById("view-yo"); }
-  function fmt(d) { return d.toISOString().slice(0, 10); }
+  function fmt(d) { return Store.localDateStr(d); }
 
   function weekDates() {
     const today = new Date(); today.setHours(0, 0, 0, 0);
