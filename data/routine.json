@@ -1,0 +1,81 @@
+{
+  "meta": {
+    "nombre": "Plan Toji",
+    "objetivo": "Físico tipo Toji Fushiguro: espalda ancha, hombros redondeados, brazos definidos, abdomen visible.",
+    "dias_semana": 6
+  },
+  "dias": [
+    {
+      "id": "d1",
+      "nombre": "Día 1 — Empuje A",
+      "foco": "Pecho / hombro / tríceps",
+      "ejercicios": [
+        {"exercise_id": "press_banca_mancuernas", "series": 4, "reps": "8-12", "nota": "El ejercicio principal del día"},
+        {"exercise_id": "press_inclinado_mancuernas", "series": 3, "reps": "10-15", "nota": ""},
+        {"exercise_id": "press_militar_mancuernas", "series": 3, "reps": "10-12", "nota": ""},
+        {"exercise_id": "elevaciones_laterales", "series": 3, "reps": "15-20", "nota": ""},
+        {"exercise_id": "fondos_banco", "series": 3, "reps": "al fallo", "nota": ""},
+        {"exercise_id": "extension_triceps_una_mano", "series": 3, "reps": "12-15", "nota": "Por brazo"}
+      ]
+    },
+    {
+      "id": "d2",
+      "nombre": "Día 2 — Tirón A",
+      "foco": "Espalda / bíceps",
+      "ejercicios": [
+        {"exercise_id": "dominadas_negativas", "series": 4, "reps": "al fallo", "nota": "Prioridad — sustituye por dominadas completas si ya te salen"},
+        {"exercise_id": "remo_una_mano", "series": 4, "reps": "10-12", "nota": "Por brazo"},
+        {"exercise_id": "pull_over", "series": 3, "reps": "12-15", "nota": ""},
+        {"exercise_id": "face_pull_banda", "series": 3, "reps": "15-20", "nota": ""},
+        {"exercise_id": "curl_biceps", "series": 3, "reps": "12-15", "nota": ""}
+      ]
+    },
+    {
+      "id": "d3",
+      "nombre": "Día 3 — Pierna A",
+      "foco": "Cuádriceps / glúteo / core",
+      "ejercicios": [
+        {"exercise_id": "sentadilla_goblet", "series": 4, "reps": "12-15", "nota": ""},
+        {"exercise_id": "zancada_bulgara", "series": 3, "reps": "10-12", "nota": "Por pierna — cambia a step-up si molesta la rodilla"},
+        {"exercise_id": "zancada_caminando", "series": 3, "reps": "12", "nota": "Por pierna"},
+        {"exercise_id": "elevacion_gemelo", "series": 4, "reps": "20", "nota": ""},
+        {"exercise_id": "plancha", "series": 3, "reps": "45-60 s", "nota": ""}
+      ]
+    },
+    {
+      "id": "d4",
+      "nombre": "Día 4 — Empuje B",
+      "foco": "Hombro / pecho / tríceps",
+      "ejercicios": [
+        {"exercise_id": "press_militar_pie", "series": 4, "reps": "8-12", "nota": ""},
+        {"exercise_id": "press_banca_mancuernas", "series": 3, "reps": "10-12", "nota": "Tempo lento en la bajada (3 seg)"},
+        {"exercise_id": "elevaciones_frontales", "series": 3, "reps": "15", "nota": "Superserie con elevaciones laterales"},
+        {"exercise_id": "flexiones_deficit", "series": 3, "reps": "al fallo", "nota": ""},
+        {"exercise_id": "press_frances", "series": 3, "reps": "12-15", "nota": ""}
+      ]
+    },
+    {
+      "id": "d5",
+      "nombre": "Día 5 — Tirón B",
+      "foco": "Espalda / bíceps / core",
+      "ejercicios": [
+        {"exercise_id": "remo_dos_manos", "series": 4, "reps": "10-12", "nota": ""},
+        {"exercise_id": "dominadas_agarre_cerrado", "series": 3, "reps": "al fallo", "nota": "Sustituye por remo invertido en banco si no tienes barra"},
+        {"exercise_id": "remo_invertido_banco", "series": 3, "reps": "12-15", "nota": ""},
+        {"exercise_id": "curl_martillo", "series": 3, "reps": "12-15", "nota": ""},
+        {"exercise_id": "elevacion_piernas_colgado", "series": 3, "reps": "12-15", "nota": "Sustituye por elevación de piernas tumbado si no tienes barra"}
+      ]
+    },
+    {
+      "id": "d6",
+      "nombre": "Día 6 — Pierna B + cinta",
+      "foco": "Isquios / glúteo / cardio",
+      "ejercicios": [
+        {"exercise_id": "peso_muerto_rumano", "series": 4, "reps": "10-12", "nota": ""},
+        {"exercise_id": "hip_thrust", "series": 3, "reps": "15", "nota": ""},
+        {"exercise_id": "sentadilla_sumo", "series": 3, "reps": "12", "nota": ""},
+        {"exercise_id": "cinta_intervalos", "series": 1, "reps": "10 x 1 min", "nota": "1 min fuerte / 1 min suave"}
+      ]
+    }
+  ]
+}

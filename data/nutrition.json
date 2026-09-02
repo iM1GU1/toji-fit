@@ -1,0 +1,30 @@
+{
+  "perfil_defecto": {
+    "edad": 23,
+    "altura_cm": 165,
+    "peso_kg": 86,
+    "sexo": "hombre"
+  },
+  "preferencias": {
+    "desayuna": false,
+    "nota": "No desayuna. La primera comida del día es una comida grande, no un snack ligero. El plan reparte las calorías en 3 comidas principales, sin desayuno."
+  },
+  "objetivo": {
+    "estrategia": "recomposición — déficit moderado + proteína alta para perder grasa sin perder músculo",
+    "deficit_kcal_dia": 600,
+    "ritmo_perdida_semanal_kg": [0.4, 0.6]
+  },
+  "distribucion_comidas": [
+    {"id": "comida", "nombre": "Comida (primera comida del día)", "pct": 0.45},
+    {"id": "merienda", "nombre": "Merienda", "pct": 0.20},
+    {"id": "cena", "nombre": "Cena", "pct": 0.35}
+  ],
+  "reparto_macros_pct": { "proteina": 0.32, "grasa": 0.25, "carbohidrato": 0.43 },
+  "alimentos_saciantes": {
+    "nota": "Para no pasar hambre con menos comidas: prioriza volumen (verdura y proteína magra) y fibra antes que alimentos calóricamente densos.",
+    "proteina": ["Pechuga de pollo", "Pavo", "Ternera magra", "Pescado blanco (merluza, bacalao)", "Pescado azul (salmón, atún)", "Huevos", "Claras de huevo", "Yogur griego natural", "Queso fresco batido 0%", "Legumbres (lentejas, garbanzos, alubias)"],
+    "carbohidrato": ["Arroz", "Patata", "Boniato", "Pasta integral", "Pan integral", "Avena", "Quinoa", "Fruta (manzana, plátano, frutos rojos)"],
+    "grasa": ["Aceite de oliva virgen extra", "Aguacate", "Frutos secos (nueces, almendras)", "Semillas (chía, lino)"],
+    "verdura_libre": ["Brócoli", "Espinacas", "Pimiento", "Calabacín", "Champiñones", "Ensalada variada", "Tomate", "Judía verde"]
+  }
+}
