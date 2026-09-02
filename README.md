@@ -28,10 +28,43 @@ La app necesita un proyecto Firebase gratuito para el login y guardar el progres
        match /users/{userId} {
          allow read, write: if request.auth != null && request.auth.uid == userId;
        }
+       match /usersPublic/{uid} {
+         allow read: if request.auth != null;
+         allow write: if request.auth != null && request.auth.uid == uid;
+       }
+       match /friendships/{pairId} {
+         allow read: if request.auth != null && request.auth.uid in resource.data.uids;
+         allow create: if request.auth != null && request.auth.uid in request.resource.data.uids
+           && request.resource.data.uids.size() == 2
+           && pairId == (request.resource.data.uids[0] < request.resource.data.uids[1]
+                ? request.resource.data.uids[0] + '_' + request.resource.data.uids[1]
+                : request.resource.data.uids[1] + '_' + request.resource.data.uids[0]);
+         allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
+       }
+       match /feed/{postId} {
+         allow read: if request.auth != null && (
+           request.auth.uid == resource.data.uid ||
+           exists(/databases/$(database)/documents/friendships/$(
+             request.auth.uid < resource.data.uid
+               ? request.auth.uid + '_' + resource.data.uid
+               : resource.data.uid + '_' + request.auth.uid
+           ))
+         );
+         allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+         allow update, delete: if false;
+       }
      }
    }
    ```
 5. Panel del proyecto → icono web `</>` → registrar app → copiar el objeto `firebaseConfig` en `js/firebase-config.js`.
+
+### Si ya tenías la app configurada de antes (añadir amigos)
+
+La pestaña "Amigos" necesita 3 colecciones nuevas (`usersPublic`, `friendships`, `feed`) que no existían en las reglas antiguas. Sin este paso, añadir amigos o ver el feed dará error de permisos:
+
+1. Firebase Console → tu proyecto → Firestore Database → Reglas.
+2. Sustituye el contenido completo por el bloque de arriba (ya incluye la regla `users/{userId}` original más las 3 nuevas).
+3. Publicar.
 
 ## Qué incluye
 
@@ -41,7 +74,8 @@ La app necesita un proyecto Firebase gratuito para el login y guardar el progres
 - **Comer → Nutrición**: calorías y macros calculados a partir de tu edad/altura/peso (fórmula Mifflin-St Jeor), repartidos en 3 comidas sin desayuno.
 - **Comer → Recetas**: recetas guiadas paso a paso para cada comida.
 - **Comer → Compra**: lista de la compra generada automáticamente a partir del plan de comidas de la semana.
-- **Yo**: registro de peso con gráfica, checklist semanal de hábitos, y consejos automáticos (motor de reglas: si llevas días sin entrenar, si el peso está estancado, etc.).
+- **Amigos**: añade a alguien por su email (debe tener ya cuenta creada) y ve un feed con sus últimos entrenamientos terminados — se publica automáticamente cuando alguien pulsa "Terminar entrenamiento". Solo ves el feed de la gente que has añadido, nadie ve el tuyo sin que lo añadas.
+- **Yo**: registro de peso con gráfica, racha de días cumplidos, y consejos automáticos (motor de reglas: si llevas días sin entrenar, si el peso está estancado, etc.).
 
 ## Cambiar tu contraseña
 
