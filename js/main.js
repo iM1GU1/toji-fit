@@ -4,8 +4,9 @@ const App = (() => {
   let currentView = "rutina";
   let navReady = false;
   const VIEWS = {
-    rutina: ViewRutina, entrenar: ViewEntrenar, comer: ViewComer, guias: ViewGuias, yo: ViewYo
+    rutina: ViewRutina, entrenar: ViewEntrenar, comer: ViewComer, guias: ViewGuias, amigos: ViewAmigos, yo: ViewYo
   };
+  const VIEW_ORDER = ["rutina", "entrenar", "comer", "guias", "amigos", "yo"];
 
   function toast(msg) {
     const t = document.getElementById("toast");
@@ -26,6 +27,7 @@ const App = (() => {
     document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
     document.getElementById("view-" + viewName).classList.add("active");
     document.querySelectorAll("nav.bottom button").forEach(b => b.classList.toggle("active", b.dataset.view === viewName));
+    document.getElementById("bottom-nav").style.setProperty("--nav-i", VIEW_ORDER.indexOf(viewName));
     if (viewName === "guias" && params && params.exerciseId) ViewGuias.openExercise(params.exerciseId);
     else VIEWS[viewName].render();
     updateStreakPill();
@@ -95,6 +97,7 @@ const App = (() => {
 
   async function onAuthed(user) {
     await Store.initRemote(user.uid);
+    Store.ensurePublicProfile(user.uid, user.email);
     initNav();
     document.getElementById("app").classList.add("ready");
     goTo("rutina");

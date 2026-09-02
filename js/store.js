@@ -94,6 +94,72 @@ const Store = (() => {
     state = null;
   }
 
+  // ---------- amigos / feed (colecciones compartidas, fuera de users/{uid}) ----------
+  function pairId(a, b) { return a < b ? `${a}_${b}` : `${b}_${a}`; }
+  function displayNameFromEmail(email) { return (email || "").split("@")[0]; }
+
+  async function ensurePublicProfile(uid, email) {
+    if (!db) return;
+    try {
+      await db.collection("usersPublic").doc(uid).set({
+        email: email || "", displayName: displayNameFromEmail(email), updatedAt: Date.now()
+      }, { merge: true });
+    } catch (e) { console.warn("No se pudo publicar el perfil público", e); }
+  }
+
+  async function searchUserByEmail(email) {
+    if (!db) return null;
+    email = (email || "").trim().toLowerCase();
+    if (!email) return null;
+    const snap = await db.collection("usersPublic").where("email", "==", email).limit(1).get();
+    if (snap.empty) return null;
+    const doc = snap.docs[0];
+    return { uid: doc.id, ...doc.data() };
+  }
+
+  async function addFriendByEmail(email) {
+    const found = await searchUserByEmail(email);
+    if (!found) return { ok: false, reason: "not_found" };
+    if (found.uid === remoteUid) return { ok: false, reason: "self" };
+    const id = pairId(remoteUid, found.uid);
+    await db.collection("friendships").doc(id).set({
+      uids: [remoteUid, found.uid].sort(), createdAt: Date.now()
+    });
+    return { ok: true, friend: found };
+  }
+
+  async function removeFriend(otherUid) {
+    if (!db || !remoteUid) return;
+    await db.collection("friendships").doc(pairId(remoteUid, otherUid)).delete();
+  }
+
+  async function getFriends() {
+    if (!db || !remoteUid) return [];
+    const snap = await db.collection("friendships").where("uids", "array-contains", remoteUid).get();
+    const otherUids = snap.docs.map(d => d.data().uids.find(u => u !== remoteUid)).filter(Boolean);
+    if (!otherUids.length) return [];
+    const profiles = await Promise.all(otherUids.map(uid => db.collection("usersPublic").doc(uid).get()));
+    return profiles.filter(p => p.exists).map(p => ({ uid: p.id, ...p.data() }));
+  }
+
+  async function getFriendsFeed(friendUids) {
+    if (!db || !friendUids || !friendUids.length) return [];
+    // Firestore "in" admite hasta 10 valores — de sobra para un círculo de amigos pequeño
+    const chunks = [];
+    for (let i = 0; i < friendUids.length; i += 10) chunks.push(friendUids.slice(i, i + 10));
+    const results = await Promise.all(chunks.map(chunk =>
+      db.collection("feed").where("uid", "in", chunk).orderBy("finishedAt", "desc").limit(20).get()
+    ));
+    const items = results.flatMap(snap => snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    items.sort((a, b) => b.finishedAt - a.finishedAt);
+    return items.slice(0, 25);
+  }
+
+  function postFeedItem(entry) {
+    if (!db || !remoteUid) return;
+    db.collection("feed").add(entry).catch(e => console.warn("No se pudo publicar en el feed", e));
+  }
+
   async function loadData() {
     const [exercises, routine, recipes, nutrition] = await Promise.all([
       fetch("data/exercises.json").then(r => r.json()),
@@ -217,6 +283,14 @@ const Store = (() => {
     state.activeWorkout = null;
     state.dayLog[localDateStr()] = true;
     save();
+    const setsDone = w.entries.reduce((n, e) => n + e.sets.filter(s => s.done).length, 0);
+    postFeedItem({
+      uid: remoteUid,
+      displayName: displayNameFromEmail((typeof Auth !== "undefined" && Auth.user) ? Auth.user.email : ""),
+      dayName: w.nombre,
+      setsDone,
+      finishedAt: w.finishedAt
+    });
   }
   function discardWorkout() { state.activeWorkout = null; save(); }
   function getHistory() { return state.workoutHistory; }
@@ -346,6 +420,7 @@ const Store = (() => {
     loadData, get data() { return data; }, get state() { return state; },
     localDateStr,
     initRemote, clearRemote,
+    ensurePublicProfile, searchUserByEmail, addFriendByEmail, removeFriend, getFriends, getFriendsFeed,
     getExercise, exercisesByGroup,
     getDay, getResolvedDay, getAllResolvedDays, suggestSubstitutes, substitute, revertSubstitute, updateExerciseFields, revertEdits,
     getProfile, setProfile,
