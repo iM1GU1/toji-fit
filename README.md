@@ -1,207 +1,110 @@
-/* main.js — arranque de la app, navegación entre pestañas, racha y panel de ajustes */
+# Plan Toji
 
-const App = (() => {
-  let currentView = "rutina";
-  let navReady = false;
-  const VIEWS = {
-    rutina: ViewRutina, entrenar: ViewEntrenar, comer: ViewComer, guias: ViewGuias, amigos: ViewAmigos, yo: ViewYo
-  };
-  const VIEW_ORDER = ["rutina", "entrenar", "comer", "guias", "amigos", "yo"];
+App web personal de entrenamiento y nutrición para entrenar en casa (cinta, banco, mancuernas) con el objetivo de físico tipo Toji Fushiguro. Funciona como PWA instalable en Android.
 
-  function toast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
-    clearTimeout(toast._h);
-    toast._h = setTimeout(() => t.classList.remove("show"), 2200);
-  }
+## Privacidad
 
-  function updateStreakPill() {
-    if (!Store.state) return;
-    const s = Engine.computeStreak(Store.getDayLog());
-    document.getElementById("streak-n").textContent = s.current;
-    updateXpPill();
-  }
+Este repositorio es **público** (GitHub Pages gratuito no permite publicar desde repos privados), así que **el código** de la app es visible para cualquiera. Pero el acceso real es por cuenta: cada persona inicia sesión con su email y contraseña (Firebase Authentication), y su progreso solo lo puede leer/escribir esa cuenta (reglas de Firestore). Eso sí es privacidad real, no un candado de cara.
 
-  function updateXpPill() {
-    if (!Store.state) return;
-    const info = Store.getXpInfo();
-    const lvlEl = document.getElementById("xp-level");
-    const fillEl = document.getElementById("xp-bar-fill");
-    if (lvlEl) lvlEl.textContent = info.level;
-    if (fillEl) fillEl.style.width = Math.round(info.pct * 100) + "%";
-  }
+## Cómo usarla
 
-  // ---------- feedback de dopamina: +XP flotante, confeti, celebración de PR/nivel ----------
-  function floatXp(anchorEl, amount) {
-    if (!anchorEl || !amount) return;
-    const rect = anchorEl.getBoundingClientRect();
-    const el = document.createElement("div");
-    el.className = "floating-xp";
-    el.textContent = "+" + amount + " XP";
-    el.style.left = Math.round(rect.left + rect.width / 2 - 32) + "px";
-    el.style.top = Math.round(rect.top - 4) + "px";
-    document.body.appendChild(el);
-    requestAnimationFrame(() => el.classList.add("show"));
-    setTimeout(() => el.classList.add("hide"), 750);
-    setTimeout(() => el.remove(), 1600);
-  }
+1. Abre la URL de GitHub Pages en el móvil (Android recomendado, para vibración y notificaciones).
+2. Crea tu cuenta la primera vez (email + contraseña) — cada persona la suya.
+3. Usa "Añadir a pantalla de inicio" para instalarla como app (icono propio, pantalla completa, funciona offline).
+4. Activa las notificaciones cuando te lo pida, para que el temporizador de descanso avise aunque tengas la pantalla apagada un momento.
 
-  function spawnConfetti(container) {
-    const colors = ["#ee7d2f", "#f4a940", "#5cae6f", "#f1ece1"];
-    for (let i = 0; i < 26; i++) {
-      const p = document.createElement("span");
-      p.className = "confetti-piece";
-      p.style.setProperty("--x", Math.round(Math.random() * 220 - 110) + "px");
-      p.style.setProperty("--r", Math.round(Math.random() * 360) + "deg");
-      p.style.setProperty("--d", (0.7 + Math.random() * 0.6).toFixed(2) + "s");
-      p.style.left = (42 + Math.random() * 16) + "%";
-      p.style.background = colors[i % colors.length];
-      container.appendChild(p);
-    }
-  }
+## Configurar Firebase (una sola vez)
 
-  let celebrateBusy = false;
-  const celebrateQueue = [];
-  function celebrate(opts) {
-    celebrateQueue.push(opts);
-    if (!celebrateBusy) runNextCelebration();
-  }
-  function runNextCelebration() {
-    const opts = celebrateQueue.shift();
-    if (!opts) { celebrateBusy = false; return; }
-    celebrateBusy = true;
-    const ov = document.createElement("div");
-    ov.className = "celebrate-ov " + (opts.type || "");
-    ov.innerHTML = `<div class="celebrate-card"><div class="celebrate-title">${opts.title}</div>${opts.subtitle ? `<div class="celebrate-sub">${opts.subtitle}</div>` : ""}</div>`;
-    document.body.appendChild(ov);
-    spawnConfetti(ov);
-    if (Store.getSettings && Store.getSettings().vibrateOn && navigator.vibrate) navigator.vibrate([70, 40, 70, 40, 160]);
-    requestAnimationFrame(() => ov.classList.add("show"));
-    setTimeout(() => {
-      ov.classList.remove("show");
-      setTimeout(() => { ov.remove(); runNextCelebration(); }, 350);
-    }, 1650);
-  }
+La app necesita un proyecto Firebase gratuito para el login y guardar el progreso en la nube:
 
-  function goTo(viewName, params) {
-    currentView = viewName;
-    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
-    document.getElementById("view-" + viewName).classList.add("active");
-    document.querySelectorAll("nav.bottom button").forEach(b => b.classList.toggle("active", b.dataset.view === viewName));
-    document.getElementById("bottom-nav").style.setProperty("--nav-i", VIEW_ORDER.indexOf(viewName));
-    if (viewName === "guias" && params && params.exerciseId) ViewGuias.openExercise(params.exerciseId);
-    else VIEWS[viewName].render();
-    updateStreakPill();
-    document.getElementById("main").scrollTo({ top: 0 });
-  }
+1. https://console.firebase.google.com → crear proyecto.
+2. Compilación → Authentication → Sign-in method → activar **Correo electrónico/contraseña**.
+3. Compilación → Firestore Database → crear base de datos (modo producción).
+4. En Firestore → Reglas, pegar:
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{userId} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+       match /usersPublic/{uid} {
+         allow read: if request.auth != null;
+         allow write: if request.auth != null && request.auth.uid == uid;
+       }
+       match /friendships/{pairId} {
+         allow read: if request.auth != null && request.auth.uid in resource.data.uids;
+         allow create: if request.auth != null && request.auth.uid in request.resource.data.uids
+           && request.resource.data.uids.size() == 2
+           && pairId == (request.resource.data.uids[0] < request.resource.data.uids[1]
+                ? request.resource.data.uids[0] + '_' + request.resource.data.uids[1]
+                : request.resource.data.uids[1] + '_' + request.resource.data.uids[0]);
+         allow delete: if request.auth != null && request.auth.uid in resource.data.uids;
+       }
+       match /feed/{postId} {
+         allow read: if request.auth != null && (
+           request.auth.uid == resource.data.uid ||
+           exists(/databases/$(database)/documents/friendships/$(
+             request.auth.uid < resource.data.uid
+               ? request.auth.uid + '_' + resource.data.uid
+               : resource.data.uid + '_' + request.auth.uid
+           ))
+         );
+         allow create: if request.auth != null && request.auth.uid == request.resource.data.uid;
+         allow update, delete: if false;
+       }
+     }
+   }
+   ```
+5. Panel del proyecto → icono web `</>` → registrar app → copiar el objeto `firebaseConfig` en `js/firebase-config.js`.
 
-  function initNav() {
-    if (navReady) return;
-    navReady = true;
-    document.querySelectorAll("nav.bottom button").forEach(b => {
-      b.addEventListener("click", () => goTo(b.dataset.view));
-    });
-    document.getElementById("btn-settings").addEventListener("click", openSettings);
-  }
+### Si ya tenías la app configurada de antes (añadir amigos)
 
-  function openSettings() {
-    const profile = Store.getProfile();
-    const settings = Store.getSettings();
-    const panel = document.createElement("div");
-    panel.className = "settings-panel";
-    panel.innerHTML = `
-      <div class="sheet">
-        <h2>Ajustes</h2>
-        <p class="muted" style="font-size:0.82rem;margin-bottom:16px;">Sesión: ${Auth.user ? Auth.user.email : ""}</p>
-        <div class="field"><label>Edad</label><input type="number" id="s-edad" value="${profile.edad}"></div>
-        <div class="field"><label>Altura (cm)</label><input type="number" id="s-altura" value="${profile.altura_cm}"></div>
-        <div class="field"><label>Peso actual (kg)</label><input type="number" step="0.1" id="s-peso" value="${profile.peso_kg}"></div>
-        <div class="field"><label>Nivel de actividad</label>
-          <select id="s-actividad">
-            ${[["sedentario", "Sedentario"], ["ligero", "Ligero"], ["moderado", "Moderado"], ["alto", "Alto"]]
-              .map(([v, l]) => `<option value="${v}" ${profile.nivel_actividad === v ? "selected" : ""}>${l}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Experiencia entrenando</label>
-          <select id="s-experiencia">
-            ${[["principiante", "Principiante"], ["intermedio", "Intermedio"], ["avanzado", "Avanzado"]]
-              .map(([v, l]) => `<option value="${v}" ${profile.experiencia === v ? "selected" : ""}>${l}</option>`).join("")}
-          </select>
-        </div>
-        <div class="field"><label>Descanso por defecto entre series (segundos)</label><input type="number" id="s-timer" value="${settings.restTimerDefault}"></div>
-        <div class="field row" style="gap:10px;">
-          <input type="checkbox" id="s-vibrate" ${settings.vibrateOn ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--accent);">
-          <label style="margin:0;text-transform:none;">Vibrar al terminar el descanso</label>
-        </div>
-        <div class="field row" style="gap:10px;">
-          <input type="checkbox" id="s-sound" ${settings.soundOn ? "checked" : ""} style="width:20px;height:20px;accent-color:var(--accent);">
-          <label style="margin:0;text-transform:none;">Sonido al terminar el descanso</label>
-        </div>
-        <button class="btn primary block" id="s-save">Guardar</button>
-        <button class="btn ghost block" id="s-close" style="margin-top:8px;">Cerrar</button>
-        <hr style="border:none;border-top:1px solid var(--border);margin:18px 0;">
-        <button class="btn ghost block" id="s-logout">Cerrar sesión</button>
-      </div>
-    `;
-    document.body.appendChild(panel);
-    panel.addEventListener("click", e => { if (e.target === panel) panel.remove(); });
-    panel.querySelector("#s-close").addEventListener("click", () => panel.remove());
-    panel.querySelector("#s-save").addEventListener("click", () => {
-      Store.setProfile({
-        edad: Number(panel.querySelector("#s-edad").value),
-        altura_cm: Number(panel.querySelector("#s-altura").value),
-        peso_kg: Number(panel.querySelector("#s-peso").value),
-        nivel_actividad: panel.querySelector("#s-actividad").value,
-        experiencia: panel.querySelector("#s-experiencia").value
-      });
-      Store.setSettings({
-        restTimerDefault: Number(panel.querySelector("#s-timer").value),
-        vibrateOn: panel.querySelector("#s-vibrate").checked,
-        soundOn: panel.querySelector("#s-sound").checked
-      });
-      panel.remove();
-      toast("Ajustes guardados");
-      VIEWS[currentView].render();
-    });
-    panel.querySelector("#s-logout").addEventListener("click", () => {
-      Store.clearRemote();
-      Auth.logout();
-      panel.remove();
-    });
-  }
+La pestaña "Amigos" necesita 3 colecciones nuevas (`usersPublic`, `friendships`, `feed`) que no existían en las reglas antiguas. Sin este paso, añadir amigos o ver el feed dará error de permisos:
 
-  async function onAuthed(user) {
-    await Store.initRemote(user.uid);
-    Store.ensurePublicProfile(user.uid, user.email);
-    if (!Store.isOnboardingDone()) {
-      document.getElementById("quiz").classList.add("show");
-      ViewQuiz.render(() => {
-        document.getElementById("quiz").classList.remove("show");
-        enterApp();
-      });
-      return;
-    }
-    enterApp();
-  }
+1. Firebase Console → tu proyecto → Firestore Database → Reglas.
+2. Sustituye el contenido completo por el bloque de arriba (ya incluye la regla `users/{userId}` original más las 3 nuevas).
+3. Publicar.
 
-  function enterApp() {
-    initNav();
-    document.getElementById("app").classList.add("ready");
-    goTo("rutina");
-    if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
-  }
+## Qué incluye
 
-  function onSignedOut() {
-    document.getElementById("app").classList.remove("ready");
-    document.getElementById("quiz").classList.remove("show");
-    currentView = "rutina";
-  }
+- **Test corto (una sola vez)**: al crear la cuenta, 3 pasos rápidos (edad/altura/peso/sexo, nivel de actividad, experiencia entrenando) generan tu plan Toji a medida — qué peso y cuántas repeticiones hacer en cada ejercicio. No hay que rellenar nada de esto en cada entrenamiento. Se puede repetir o ajustar más tarde desde Ajustes (engranaje).
+- **Rutina**: los 6 días del plan Toji con más de 70 ejercicios de gimnasio (mancuernas, barra, polea, máquina y peso corporal), cada uno con su peso y repeticiones ya calculados. Sustitución de ejercicios por lógica de grupo muscular (mismo objetivo Toji, músculos secundarios en común) y edición manual de series/repeticiones si quieres cambiarlas.
+- **Entrenar**: el plan ya viene hecho — cada serie es un botón con el peso y las reps a hacer; la tocas al terminarla y se tacha, sin escribir nada. Progresión automática: si completas todas las series de un ejercicio, la próxima vez se prescribe un poco más de peso. Botón "Reemplazar" en cada ejercicio para cambiarlo al momento por otro del mismo grupo muscular. Temporizador de descanso con anillo animado, play/pausa/reset real y +15s, sonido + vibración + notificación, y mantiene la pantalla encendida mientras entrenas.
+- **Guías**: ficha de cada ejercicio con instrucciones paso a paso y errores comunes, adaptadas de [free-exercise-db](https://github.com/yuhonas/free-exercise-db) (base de datos abierta de ejercicios).
+- **Comer → Nutrición**: calorías y macros calculados a partir de tu edad/altura/peso (fórmula Mifflin-St Jeor), repartidos en 3 comidas sin desayuno.
+- **Comer → Recetas**: recetas guiadas paso a paso para cada comida.
+- **Comer → Compra**: lista de la compra generada automáticamente a partir del plan de comidas de la semana.
+- **XP y nivel de hechicero**: cada serie que tocas da XP (peso × repeticiones; un PR paga el doble), con barra de progreso animada en la cabecera y en la pestaña Yo, títulos de rango (Aprendiz → Hechicero grado 4/3/2/1 → Grado especial) y una celebración a pantalla completa al subir de nivel.
+- **Récords personales (PR)**: la app recuerda tu mejor marca (1RM estimado) de cada ejercicio. En cuanto la superas, aparece un aviso de "¡Nuevo PR!" con confeti, al momento.
+- **Amigos**: añade a alguien por su email (debe tener ya cuenta creada) y ve un feed con sus últimos entrenamientos terminados — se publica automáticamente cuando alguien pulsa "Terminar entrenamiento". Solo ves el feed de la gente que has añadido, nadie ve el tuyo sin que lo añadas.
+- **Reto semanal**: dentro de Amigos, una clasificación de XP ganada esta semana entre tú y cada amigo/a — se reinicia cada lunes. Usa las mismas colecciones/reglas de Firestore que "Amigos" (no hace falta ningún paso adicional de configuración).
+- **Yo**: registro de peso con gráfica, racha de días cumplidos, y consejos automáticos (motor de reglas: si llevas días sin entrenar, si el peso está estancado, etc.).
 
-  document.addEventListener("DOMContentLoaded", async () => {
-    await Store.loadData();
-    Auth.init(onAuthed, onSignedOut);
-  });
+## Cambiar tu contraseña
 
-  return { goTo, toast, updateStreakPill, celebrate, floatXp };
-})();
+Pantalla de acceso → "¿Has olvidado tu contraseña?" (te llega un email de Firebase para restablecerla). Cerrar sesión: Ajustes (engranaje) → "Cerrar sesión".
+
+## Actualizar el contenido
+
+Todo el contenido (ejercicios, rutina, recetas, objetivos de nutrición) vive en archivos JSON dentro de `data/`. Puedes editarlos directamente en GitHub o pedirle a Claude que lo actualice.
+
+## Después de subir un cambio en el código (`.js` / `.css`)
+
+GitHub Pages cachea esos archivos hasta 10 minutos, y el móvil (como PWA instalada) los cachea aparte con el service worker. Para que el cambio se vea al momento en vez de esperar:
+
+1. Sube los archivos `.js`/`.css` modificados como siempre.
+2. Sube también `index.html` con el número de versión (`?v=3`, `?v=4`, …) subido en **todas** las etiquetas `<script>`/`<link>` que apunten a `js/` o `css/`.
+3. Sube `sw.js` con `CACHE` y las rutas de `ASSETS` actualizadas al mismo número de versión.
+
+Si solo subes el `.js` sin subir `index.html`/`sw.js` con el número de versión nuevo, puede tardar hasta 10 minutos en verse el cambio.
+
+## Desarrollo local
+
+No hay build ni dependencias. Sirve la carpeta con cualquier servidor estático, por ejemplo:
+
+```
+python3 -m http.server 8080
+```
+
+y abre `http://localhost:8080`.
