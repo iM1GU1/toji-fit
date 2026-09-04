@@ -25,7 +25,7 @@ const Store = (() => {
   function defaultState(nutrition) {
     const perfil = (nutrition && nutrition.perfil_defecto) || { edad: 23, altura_cm: 165, peso_kg: 86, sexo: "hombre" };
     return {
-      profile: { ...perfil },
+      profile: { nivel_actividad: "moderado", experiencia: "principiante", ...perfil },
       routineOverrides: {},      // { [dayId]: { [idx]: exercise_id } }
       workoutHistory: [],        // sesiones terminadas
       activeWorkout: null,       // sesión en curso
@@ -37,7 +37,9 @@ const Store = (() => {
       settings: { restTimerDefault: 90, soundOn: true, vibrateOn: true },
       xp: 0,                      // XP acumulada total (ver engine.js: levelFromXp)
       personalRecords: {},        // { [exercise_id]: {peso, reps, est, at} } — mejor 1RM estimado por ejercicio
-      weeklyXp: { weekStart: null, xp: 0 } // XP de la semana en curso, para el reto con amigos
+      weeklyXp: { weekStart: null, xp: 0 }, // XP de la semana en curso, para el reto con amigos
+      onboardingDone: false,      // test corto completado -> perfil listo para generar el plan
+      weightOverrides: {}         // { [exercise_id]: kg } — progresión real, sustituye al peso calculado por fórmula
     };
   }
 
@@ -188,6 +190,14 @@ const Store = (() => {
 
   // ---------- rutina ----------
   function getDay(dayId) { return data.routine.dias.find(d => d.id === dayId); }
+
+  // Peso prescrito para un ejercicio: si ya hay progresión real guardada (ver finishWorkout)
+  // se usa esa; si no, se calcula a partir del perfil (test corto) con la fórmula de engine.js.
+  function prescribedWeight(exerciseId, exercise) {
+    if (state.weightOverrides[exerciseId] !== undefined) return state.weightOverrides[exerciseId];
+    return Engine.baselineWeight(exercise, state.profile);
+  }
+
   function getResolvedDay(dayId) {
     const day = getDay(dayId);
     if (!day) return null;
@@ -195,22 +205,27 @@ const Store = (() => {
     const ejercicios = day.ejercicios.map((ex, idx) => {
       const o = overrides[idx] || {};
       const exId = o.exercise_id || ex.exercise_id;
+      const exercise = getExercise(exId);
+      const series = o.series !== undefined ? o.series : ex.series;
+      const reps = o.reps !== undefined ? o.reps : ex.reps;
       return {
-        idx,
-        series: o.series !== undefined ? o.series : ex.series,
-        reps: o.reps !== undefined ? o.reps : ex.reps,
-        nota: ex.nota,
+        idx, series, reps, nota: ex.nota,
         exercise_id: exId,
         original_id: ex.exercise_id,
         isSubstituted: !!o.exercise_id,
         isEdited: o.series !== undefined || o.reps !== undefined,
-        exercise: getExercise(exId)
+        exercise,
+        modo: exercise && exercise.modo === "tiempo" ? "tiempo" : "fuerza",
+        peso: prescribedWeight(exId, exercise)
       };
     });
     return { ...day, ejercicios };
   }
   function getAllResolvedDays() { return data.routine.dias.map(d => getResolvedDay(d.id)); }
 
+  // Sustitutos ordenados por lógica de grupo muscular: mismo grupo (ya filtrado), más
+  // tags de objetivo Toji en común, músculos secundarios compartidos y nivel parecido.
+  // Ya no filtra por equipo — se asume gimnasio completo.
   function suggestSubstitutes(dayId, idx) {
     const day = getDay(dayId);
     const original = day.ejercicios[idx];
@@ -218,18 +233,16 @@ const Store = (() => {
     const currentId = o.exercise_id || original.exercise_id;
     const current = getExercise(currentId);
     if (!current) return [];
-    const ownedEquip = ["mancuernas", "banco", "peso_corporal", "cinta"]; // equipo base que ya tiene el usuario
     const candidates = data.exercises.filter(e => e.id !== currentId && e.grupo === current.grupo);
-    // puntuar: mismo equipo que ya posee > comparte tag toji > nivel similar
     return candidates.map(e => {
       let score = 0;
-      const equipoDisponible = e.equipo.every(eq => ownedEquip.includes(eq));
-      if (equipoDisponible) score += 3;
-      const sharedTags = e.tags_toji.filter(t => current.tags_toji.includes(t)).length;
-      score += sharedTags;
+      const sharedTags = (e.tags_toji || []).filter(t => (current.tags_toji || []).includes(t)).length;
+      score += sharedTags * 2;
+      const sharedSec = (e.musculos_sec || []).filter(m => (current.musculos_sec || []).includes(m)).length;
+      score += sharedSec;
       if (e.nivel === current.nivel) score += 1;
-      return { exercise: e, score, equipoDisponible };
-    }).sort((a, b) => b.score - a.score).slice(0, 4);
+      return { exercise: e, score };
+    }).sort((a, b) => b.score - a.score).slice(0, 5);
   }
 
   function substitute(dayId, idx, newExerciseId) {
@@ -268,8 +281,8 @@ const Store = (() => {
       dayId, nombre: day.nombre, startedAt: Date.now(),
       entries: day.ejercicios.map(ex => ({
         exercise_id: ex.exercise_id, nombre: ex.exercise ? ex.exercise.nombre : ex.exercise_id,
-        target_series: ex.series, target_reps: ex.reps,
-        sets: Array.from({ length: (typeof ex.series === "number" ? ex.series : 3) }, () => ({ reps: "", peso: "", done: false }))
+        target_series: ex.series, target_reps: ex.reps, modo: ex.modo,
+        sets: Array.from({ length: (typeof ex.series === "number" ? ex.series : 3) }, () => ({ reps: ex.reps, peso: ex.peso, done: false }))
       }))
     };
     save();
@@ -283,12 +296,42 @@ const Store = (() => {
   }
   function addSet(entryIdx) {
     const w = state.activeWorkout; if (!w) return;
-    w.entries[entryIdx].sets.push({ reps: "", peso: "", done: false });
+    const entry = w.entries[entryIdx];
+    const last = entry.sets[entry.sets.length - 1];
+    entry.sets.push({ reps: last ? last.reps : entry.target_reps, peso: last ? last.peso : 0, done: false });
+    save();
+  }
+  // Cambia el ejercicio de una entrada YA EMPEZADA en el entrenamiento de hoy (botón
+  // "Reemplazar" en Entrenar). También guarda el cambio como sustitución del día, para
+  // que la próxima vez que toque este día ya aparezca sustituido.
+  function substituteActiveExerciseSlot(entryIdx, newExerciseId) {
+    const w = state.activeWorkout; if (!w) return;
+    const entry = w.entries[entryIdx]; if (!entry) return;
+    substitute(w.dayId, entryIdx, newExerciseId);
+    const exercise = getExercise(newExerciseId);
+    const peso = prescribedWeight(newExerciseId, exercise);
+    entry.exercise_id = newExerciseId;
+    entry.nombre = exercise ? exercise.nombre : newExerciseId;
+    entry.modo = exercise && exercise.modo === "tiempo" ? "tiempo" : "fuerza";
+    entry.sets = entry.sets.map(s => s.done ? s : { reps: entry.target_reps, peso, done: false });
     save();
   }
   function finishWorkout() {
     const w = state.activeWorkout; if (!w) return;
     w.finishedAt = Date.now();
+    // Progresión real: si completaste TODAS las series de un ejercicio con peso,
+    // la próxima vez que toque se prescribe un incremento más — sin que tengas que hacer nada.
+    w.entries.forEach(e => {
+      if (!e.sets.length || e.modo === "tiempo") return;
+      const allDone = e.sets.every(s => s.done);
+      if (!allDone) return;
+      const usedPeso = Number(e.sets[0].peso) || 0;
+      if (usedPeso <= 0) return;
+      const exercise = getExercise(e.exercise_id);
+      const equip = (exercise && exercise.equipo && exercise.equipo[0]) || "mancuernas";
+      const inc = Engine.EQUIP_ROUND[equip] !== undefined ? Engine.EQUIP_ROUND[equip] : 1;
+      if (inc > 0) state.weightOverrides[e.exercise_id] = Math.round((usedPeso + inc) * 100) / 100;
+    });
     state.workoutHistory.unshift(w);
     state.activeWorkout = null;
     state.dayLog[localDateStr()] = true;
@@ -304,6 +347,14 @@ const Store = (() => {
   }
   function discardWorkout() { state.activeWorkout = null; save(); }
   function getHistory() { return state.workoutHistory; }
+
+  // ---------- test corto / onboarding ----------
+  function isOnboardingDone() { return !!state.onboardingDone; }
+  function completeOnboarding(answers) {
+    state.profile = { ...state.profile, ...answers };
+    state.onboardingDone = true;
+    save();
+  }
 
   // ---------- gamificación: XP, niveles, PRs y reto semanal ----------
   function weekKeyOf(d) {
@@ -481,8 +532,8 @@ const Store = (() => {
     ensurePublicProfile, searchUserByEmail, addFriendByEmail, removeFriend, getFriends, getFriendsFeed,
     getExercise, exercisesByGroup,
     getDay, getResolvedDay, getAllResolvedDays, suggestSubstitutes, substitute, revertSubstitute, updateExerciseFields, revertEdits,
-    getProfile, setProfile,
-    startWorkout, getActiveWorkout, updateSet, addSet, finishWorkout, discardWorkout, getHistory,
+    getProfile, setProfile, isOnboardingDone, completeOnboarding,
+    startWorkout, getActiveWorkout, updateSet, addSet, finishWorkout, discardWorkout, getHistory, substituteActiveExerciseSlot,
     completeSet, getXpInfo, getWeeklyXp, getPersonalRecord, currentWeekKey,
     addWeight, getWeightLog,
     toggleDayDone, isDayDone, getDayLog,
