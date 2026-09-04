@@ -149,5 +149,52 @@ const Engine = (() => {
     return { level, xpInto: into, xpSpan: span, pct: Math.min(1, into / span), xpToNext: Math.max(0, nextFloor - totalXp), totalXp };
   }
 
-  return { bmr, tdee, calcTargets, mealTargets, bmi, weightTrendAdvice, homeTips, computeStreak, xpForSet, xpForLevel, levelFromXp };
+  // ---------- rango de hechicero (título de nivel, solo texto de ambientación) ----------
+  function rankTitle(level) {
+    if (level >= 26) return "Grado especial";
+    if (level >= 19) return "Hechicero grado 1";
+    if (level >= 13) return "Hechicero grado 2";
+    if (level >= 8) return "Hechicero grado 3";
+    if (level >= 4) return "Hechicero grado 4";
+    return "Aprendiz";
+  }
+
+  // ---------- prescripción de peso/reps (plan personalizado, sin que el usuario teclee nada) ----------
+  // Incremento práctico por tipo de equipo al redondear el peso calculado.
+  const EQUIP_ROUND = {
+    mancuernas: 1, barra: 2.5, maquina: 5, polea: 2.5, banda: 0, banco: 0,
+    peso_corporal: 0, barra_dominadas: 0, paralelas: 0, cinta: 0, bici: 0
+  };
+
+  function roundToIncrement(kg, inc) {
+    if (!inc) return 0;
+    return Math.max(inc, Math.round(kg / inc) * inc);
+  }
+  function experienceMult(exp) {
+    return exp === "avanzado" ? 1.3 : exp === "principiante" ? 0.75 : 1.0;
+  }
+  function activityMult(niv) {
+    return niv === "alto" ? 1.08 : niv === "moderado" ? 1.0 : niv === "ligero" ? 0.95 : 0.9;
+  }
+  function sexoMult(sexo) { return sexo === "mujer" ? 0.7 : 1.0; }
+
+  // Peso de partida estimado para un ejercicio, a partir del perfil (peso corporal,
+  // experiencia, nivel de actividad, sexo) y el coeficiente propio del ejercicio.
+  // Es un punto de partida razonable, no una prescripción médica — se ajusta solo con
+  // el progreso real (ver Store.finishWorkout: sube un incremento cada vez que completas
+  // todas las series de un ejercicio).
+  function baselineWeight(exercise, profile) {
+    if (!exercise || !exercise.coef) return 0;
+    profile = profile || {};
+    const raw = exercise.coef * (profile.peso_kg || 70) *
+      experienceMult(profile.experiencia) * activityMult(profile.nivel_actividad) * sexoMult(profile.sexo);
+    const equip = (exercise.equipo && exercise.equipo[0]) || "mancuernas";
+    const inc = EQUIP_ROUND[equip] !== undefined ? EQUIP_ROUND[equip] : 1;
+    return roundToIncrement(raw, inc);
+  }
+
+  return {
+    bmr, tdee, calcTargets, mealTargets, bmi, weightTrendAdvice, homeTips, computeStreak,
+    xpForSet, xpForLevel, levelFromXp, rankTitle, baselineWeight, EQUIP_ROUND
+  };
 })();
