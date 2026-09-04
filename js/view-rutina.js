@@ -87,7 +87,7 @@ const ViewRutina = (() => {
         subListEl.innerHTML = subs.length
           ? subs.map(s => `
             <div class="sub-opt">
-              <span>${s.exercise.nombre} ${s.equipoDisponible ? "" : "<span class=\"tag\" style=\"margin-left:4px;\">requiere equipo extra</span>"}</span>
+              <span>${s.exercise.nombre}<span class="tag" style="margin-left:6px;">${s.exercise.equipo.join(", ").replaceAll("_", " ")}</span></span>
               <button data-id="${s.exercise.id}">Usar</button>
             </div>`).join("")
           : `<p class="muted" style="margin:0;">No hay alternativas guardadas para este grupo muscular todavía.</p>`;
@@ -139,7 +139,7 @@ const ViewRutina = (() => {
           </div>
         </div>
         <div class="ex-right">
-          <div class="ex-sr">${ex.series}×${ex.reps}</div>
+          <div class="ex-sr">${ex.series}×${ex.reps}${ex.modo === "tiempo" ? " s" : ex.peso > 0 ? ` · ${ex.peso}kg` : ""}</div>
           ${CHEVRON}
         </div>
       </button>
