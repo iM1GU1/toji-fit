@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 280">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="38%" r="60%">
+      <stop offset="0%" stop-color="#ee7d2f" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ee7d2f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#ee7d2f" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#f4a940" stop-opacity="0.9"/>
+    </linearGradient>
+  </defs>
+
+  <circle cx="110" cy="110" r="105" fill="url(#glow)"/>
+
+  <!-- silueta: figura de pie, abrigo largo, espada al costado -->
+  <g fill="#15130f">
+    <!-- cabeza + pelo con puntas -->
+    <path d="M96 40 L100 24 L106 38 L112 20 L118 38 L124 26 L128 42
+             C130 52 126 62 116 65 C104 68 94 60 93 50 Z"/>
+    <!-- cuello y torso / abrigo largo -->
+    <path d="M92 63 C92 68 96 72 100 73 L94 90
+             C82 96 74 112 72 132 L66 230
+             C65 240 70 248 80 250 L86 252 L90 190
+             C90 190 92 220 92 250 L128 250
+             C128 220 130 190 130 190 L134 252 L140 250
+             C150 248 155 240 154 230 L148 132
+             C146 112 138 96 126 90 L120 73
+             C124 72 128 68 128 63
+             C128 63 122 70 110 70 C98 70 92 63 92 63 Z"/>
+    <!-- brazo derecho sujetando espada hacia abajo -->
+    <path d="M126 90 C136 96 142 108 144 122 L150 170 L142 172 L136 122
+             C134 112 130 102 122 96 Z"/>
+  </g>
+
+  <!-- espada -->
+  <g>
+    <rect x="147" y="118" width="6" height="108" rx="1.5" fill="#1b1712"/>
+    <rect x="145.5" y="112" width="9" height="8" rx="1" fill="url(#rim)"/>
+    <rect x="139" y="120" width="22" height="4" rx="1.5" fill="url(#rim)"/>
+    <rect x="148.5" y="226" width="3" height="16" fill="#2a241a"/>
+  </g>
+
+  <!-- borde con luz ember -->
+  <path d="M128 63 C124 72 116 78 108 78" stroke="url(#rim)" stroke-width="1.5" fill="none" opacity="0.8"/>
+  <path d="M148 132 L154 230" stroke="url(#rim)" stroke-width="1.5" fill="none" opacity="0.6"/>
+</svg>
